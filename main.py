@@ -8,7 +8,7 @@ import numpy as np
 ocr_model = PaddleOCR(lang='en')
 # Initialize the main application window
 root = Tk()
-root.title("OpenCV Video with Exit Button")
+root.title("Xác Thực CCCD")
 root.geometry("1200x750")  # Set a larger window size
 # Define video feed dimensions
 video_width, video_height = 500, 300
@@ -47,7 +47,7 @@ BacBOX.place(x=100, y=700)
 # video_label.pack()
 key = 0
 # Initialize the webcam
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(1)
 # cropped_id_card = None
 copy_image = None
 
@@ -56,7 +56,7 @@ def check_front(image):
     # Chuyển đổi ảnh sang không gian màu HSV
     hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     # Định nghĩa khoảng màu đỏ trong không gian màu HSV
-    lower_red1 = np.array([0, 70, 50])
+    lower_red1 = np.array([0, 180, 50])
     upper_red1 = np.array([10, 255, 255])
     lower_red2 = np.array([170, 70, 50])
     upper_red2 = np.array([180, 255, 255])
@@ -149,6 +149,7 @@ def Process():
         check_back_image = cropped_id_card[98:98+56, 53:53+66]
         if check_front(check_front_image):
             print("Mặt Trước")
+            cv2.imshow("Check Zone",check_front_image)
             # Mã Căn Cước Tọa độ: (x=198, y=123, w=179, h=41)
             # Ngày Sinh: Tọa độ: (x=286, y=182, w=94, h=29)
             # Ngày hết hạn: Tọa độ: (x=71, y=268, w=72, h=32)
@@ -238,6 +239,7 @@ def Process():
             break
         elif check_back(check_back_image):
             print("Mặt sau")
+            cv2.imshow("Check Zone",check_back_image)
             # Mã MRZ: Tọa độ: (x=6, y=188, w=487, h=107)
             mrz_pos = cropped_id_card[188:188+107, 6:6+487]
             gray_mrz = cv2.cvtColor(mrz_pos, cv2.COLOR_BGR2GRAY)
@@ -294,7 +296,7 @@ def Process():
             # cv2.imshow("mrz_pos", gray_mrz)
             break
         else:
-            # print("Xoay Ảnh")
+            print("Xoay Ảnh")
             cropped_id_card = cv2.rotate(cropped_id_card, cv2.ROTATE_180)
 
     cropped_id_card = cv2.cvtColor(cropped_id_card, cv2.COLOR_BGR2RGB)
