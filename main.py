@@ -1,5 +1,7 @@
 import cv2
 from tkinter import *
+from tkinter.font import Font
+import time
 from paddleocr import PaddleOCR
 from datetime import datetime
 from PIL import Image, ImageTk
@@ -101,8 +103,9 @@ def update_frame():
     # Làm mờ ảnh
         blurred = cv2.GaussianBlur(gray, (5, 5), 1)
     # Phát hiện cạnh sử dụng Canny
-    # thresh1 = cv2.adaptiveThreshold(blurred,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY_INV,11,5)
-        _, thresh1 = cv2.threshold(blurred, 130, 255, cv2.THRESH_BINARY)
+        # thresh1 = cv2.adaptiveThreshold(blurred,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY_INV,11,5)
+        _, thresh1 = cv2.threshold(blurred, 127, 255, cv2.THRESH_BINARY)
+        cv2.imshow("Binary", thresh1)
     # edged = cv2.Canny(thresh1, 100 , 255)  # Giảm ngưỡng để nhạy hơn với cạnh
     # # Apply morphological operations to close gaps in edges
     # Tìm các contours
@@ -132,6 +135,21 @@ def update_frame():
     video_label.after(1, update_frame)
 
 
+def popupError(message):
+    popupRoot = Tk()
+    popupRoot.title("Lỗi")
+    def exit():
+        popupRoot.destroy()
+    # popupRoot.after(2000, exit)
+    my_font =Font(family="Times New Roman", size=20, weight="bold")
+    message =Label(popupRoot,text=message,font=my_font)
+    popupButton = Button(popupRoot, text="Ok",bg="Gray", command=exit)
+    message.pack()
+    popupButton.pack()
+    popupRoot.geometry('400x50+700+500')
+    popupRoot.mainloop()
+
+
 def Process():
     global copy_image
     cropped_id_card = cv2.resize(copy_image, (500, 300))
@@ -142,6 +160,7 @@ def Process():
     # cv2.imshow("Back Position", check_back_image)
     # cv2.imshow("Cropped ID Card", cropped_id_card)
     # cv2.imshow("Cropped ID Card", cropped_id_card)
+    count = 0
     while True:
         # Tọa độ: (x=40, y=17, w=67, h=68)
         check_front_image = cropped_id_card[17:17+68, 40:40+67]
@@ -225,7 +244,8 @@ def Process():
                         cv2.FONT_HERSHEY_SIMPLEX, 1, (200, 0, 0), 2)
             cv2.putText(cropped_id_card, f"Expire:{Expire}", ((
                 40, 250)), cv2.FONT_HERSHEY_SIMPLEX, 1, (200, 0, 0), 2)
-            cv2.putText(cropped_id_card, f"BAC:{BAC}", (0, 290), cv2.FONT_HERSHEY_SIMPLEX, 1, (200, 0, 0), 2)
+            cv2.putText(cropped_id_card, f"BAC:{
+                        BAC}", (0, 290), cv2.FONT_HERSHEY_SIMPLEX, 1, (200, 0, 0), 2)
             cv2.rectangle(cropped_id_card, ((198, 123)),
                           (198+179, 123+41), (0, 255, 0), 1, cv2.LINE_AA)
             cv2.rectangle(cropped_id_card, ((286, 182)),
@@ -291,31 +311,100 @@ def Process():
             cv2.rectangle(cropped_id_card, ((6, 188)),
                           (6+487, 188+107), (0, 255, 0), 1, cv2.LINE_AA)
             # cv2.imshow("Back Position", check_back_image)
-            # cv2.imshow("mrz_pos", gray_mrz)
+            cv2.imshow("mrz_pos", mrz_pos)
             break
         else:
             # print("Xoay Ảnh")
             cropped_id_card = cv2.rotate(cropped_id_card, cv2.ROTATE_180)
+            count += 1
+            if count >= 10:
+                crop_label.configure(image='')
 
+                Facebox.configure(state=NORMAL)
+                Facebox.delete(0, END)
+                Facebox.insert(END, string="")
+                Facebox.configure(state=DISABLED)
+
+                IDbox.configure(state=NORMAL)
+                IDbox.delete(0, END)
+                IDbox.insert(END, string="")
+                IDbox.configure(state=DISABLED)
+
+                Datebox.configure(state=NORMAL)
+                Datebox.delete(0, END)
+                Datebox.insert(END, string="")
+                Datebox.configure(state=DISABLED)
+
+                Expirebox.configure(state=NORMAL)
+                Expirebox.delete(0, END)
+                Expirebox.insert(END, string="")
+                Expirebox.configure(state=DISABLED)
+
+                BacBOX.configure(state=NORMAL)
+                BacBOX.delete(0, END)
+                BacBOX.insert(END, string="")
+                BacBOX.configure(state=DISABLED)
+
+                popupError("Vui Lòng Thử Lại")
+                break
     cropped_id_card = cv2.cvtColor(cropped_id_card, cv2.COLOR_BGR2RGB)
-                    # Convert cropped frame to a PIL image
+    # Convert cropped frame to a PIL image
     img = Image.fromarray(cropped_id_card)
-                                # Convert PIL image to ImageTk format
+    # Convert PIL image to ImageTk format
     imgtk = ImageTk.PhotoImage(image=img)
-                                # Update the crop_label with the cropped image
+    # Update the crop_label with the cropped image
     crop_label.imgtk = imgtk
     crop_label.configure(image=imgtk)
+
+
 def exit_program():
     # Release the webcam and destroy all windows
     cap.release()
     root.destroy()
+
+
+def clear():
+    crop_label.configure(image='')
+
+    Facebox.configure(state=NORMAL)
+    Facebox.delete(0, END)
+    Facebox.insert(END, string="")
+    Facebox.configure(state=DISABLED)
+
+    IDbox.configure(state=NORMAL)
+    IDbox.delete(0, END)
+    IDbox.insert(END, string="")
+    IDbox.configure(state=DISABLED)
+
+    Datebox.configure(state=NORMAL)
+    Datebox.delete(0, END)
+    Datebox.insert(END, string="")
+    Datebox.configure(state=DISABLED)
+
+    Expirebox.configure(state=NORMAL)
+    Expirebox.delete(0, END)
+    Expirebox.insert(END, string="")
+    Expirebox.configure(state=DISABLED)
+
+    BacBOX.configure(state=NORMAL)
+    BacBOX.delete(0, END)
+    BacBOX.insert(END, string="")
+    BacBOX.configure(state=DISABLED)
+
+
 # Add an "Exit" button
-exit_button = Button(root, text="Exit", command=exit_program,width=10, height=2, background='Gray', activebackground='Red')
-exit_button.place(x=550,y=600)
+exit_button = Button(root, text="Exit", command=exit_program,
+                     width=10, height=2, background='Gray', activebackground='Red')
+exit_button.place(x=550, y=600)
 
 
-process_button = Button(root, text="Scan", command=Process,width=10, height=2, background='Gray', activebackground='Green')
+process_button = Button(root, text="Scan", command=Process,
+                        width=10, height=2, background='Gray', activebackground='Green')
 process_button.place(x=750, y=600)
+
+clear_button = Button(root, text="Clear", command=clear, width=10,
+                      height=2, background='Gray', activebackground='Green')
+clear_button.place(x=950, y=600)
 # root.columnconfigure(index=5,weight=1)
 # root.rowconfigure(index=5,weight=1)
 # Start the video stream
