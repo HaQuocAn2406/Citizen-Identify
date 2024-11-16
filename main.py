@@ -50,15 +50,34 @@ cap = cv2.VideoCapture(0)
 
 copy_image = None
 
+def get_limits(color):
+    c = np.uint8([[color]])  # BGR values
+    hsvC = cv2.cvtColor(c, cv2.COLOR_BGR2HSV)
+
+    hue = hsvC[0][0][0]  # Get the hue value
+
+    # Handle red hue wrap-around
+    if hue >= 165:  # Upper limit for divided red hue
+        lowerLimit = np.array([hue - 10, 100, 100], dtype=np.uint8)
+        upperLimit = np.array([180, 255, 255], dtype=np.uint8)
+    elif hue <= 15:  # Lower limit for divided red hue
+        lowerLimit = np.array([0, 100, 100], dtype=np.uint8)
+        upperLimit = np.array([hue + 10, 255, 255], dtype=np.uint8)
+    else:
+        lowerLimit = np.array([hue - 10, 100, 100], dtype=np.uint8)
+        upperLimit = np.array([hue + 10, 255, 255], dtype=np.uint8)
+
+    return lowerLimit, upperLimit
+
 def check_front(image):
     hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-    lower_red1 = np.array([0, 180, 50])
+    lower_red1 = np.array([0, 100, 100])
     upper_red1 = np.array([10, 255, 255])
-    lower_red2 = np.array([170, 70, 50])
-    upper_red2 = np.array([180, 255, 255])
+    # lower_red2 = np.array([160, 70, 100])
+    # upper_red2 = np.array([180, 255, 255])
     mask1 = cv2.inRange(hsv_image, lower_red1, upper_red1)
-    mask2 = cv2.inRange(hsv_image, lower_red2, upper_red2)
-    mask = mask1 | mask2
+    # mask2 = cv2.inRange(hsv_image, lower_red2, upper_red2)
+    mask = mask1 
     if np.any(mask):
         return True
     else:
@@ -67,30 +86,87 @@ def check_front(image):
 
 def check_back(image):
     hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-    lower_yellow = np.array([15, 100, 150])
+    lower_yellow = np.array([15, 100, 100])
     upper_yellow = np.array([40, 255, 255])  
     mask = cv2.inRange(hsv_image, lower_yellow, upper_yellow)
     if np.any(mask):
         return True
     else:
         return False
-
-
+red =[0,0,255]
+u,p = get_limits(color=red)
+print(u,p)
 def update_frame():
     global copy_image
 
     ret, frame = cap.read()
     if ret:
 
-        frame = cv2.resize(frame, (video_width, video_height))
-        blurred = cv2.GaussianBlur(frame, (7, 7), 0)
-        gray = cv2.cvtColor(blurred, cv2.COLOR_BGR2GRAY)
-        thresh1 = cv2.adaptiveThreshold(gray,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY_INV,9,5)
-        # _, thresh1 = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
+        frame = cv2.resize(frame, (int(video_width), int(video_height)))
+        
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        blurred = cv2.GaussianBlur(gray, (7, 7), 0)
+        # thresh1 = cv2.adaptiveThreshold(blurred,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY_INV,11,2)
+        _, thresh1 = cv2.threshold(gray,0, 255, cv2.THRESH_BINARY +cv2.THRESH_OTSU)
+        print(_)
+        contours, _ = cv2.findContours(thresh1, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         cv2.imshow("Binary", thresh1)
+        # if contours:
+        #     # Find the biggest contour based on area
+        #     biggest_contour = max(contours, key=cv2.contourArea)
 
-        contours, _ = cv2.findContours(
-            thresh1, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        #     # Use convex hull to get a simpler shape
+        #     hull = cv2.convexHull(biggest_contour)
+
+        #     # Approximate the contour to get 4 corners
+        #     epsilon = 0.02 * cv2.arcLength(hull, True)
+        #     approx = cv2.approxPolyDP(hull, epsilon, True)
+
+        #     # If the approximation has more than 4 points, reduce it to the largest rectangular approximation
+        #     if len(approx) >= 3:
+        #         rect = cv2.minAreaRect(biggest_contour)
+        #         box = cv2.boxPoints(rect)
+        #         box = np.int0(box)
+        #                 # Top-left point will have the smallest sum, bottom-right will have the largest sum
+        #         pts = approx.reshape(4, 2)
+        #         s = pts.sum(axis=1)
+        #         rect[0] = pts[np.argmin(s)]
+        #         rect[2] = pts[np.argmax(s)]
+        #         # Top-right point will have the smallest difference, bottom-left will have the largest difference
+        #         diff = np.diff(pts, axis=1)
+        #         rect[1] = pts[np.argmin(diff)]
+        #         rect[3] = pts[np.argmax(diff)]
+
+        #         # Compute the width and height of the new image
+        #         width_a = np.linalg.norm(rect[2] - rect[3])
+        #         width_b = np.linalg.norm(rect[1] - rect[0])
+        #         max_width = max(int(width_a), int(width_b))
+
+        #         height_a = np.linalg.norm(rect[1] - rect[2])
+        #         height_b = np.linalg.norm(rect[0] - rect[3])
+        #         max_height = max(int(height_a), int(height_b))
+
+        #         # Define the destination points to obtain a "scanned" view
+        #         dst = np.array([
+        #             [0, 0],
+        #             [max_width - 1, 0],
+        #             [max_width - 1, max_height - 1],
+        #             [0, max_height - 1]
+        #         ], dtype="float32")
+        #                 # Compute the perspective transform matrix and apply it
+        #         matrix = cv2.getPerspectiveTransform(rect, dst)
+        #         warped = cv2.warpPerspective(frame, matrix, (max_width, max_height))
+
+        #         # Display or save the cropped and transformed image
+        #         cv2.imshow("Scanned Image", warped)
+        #     else:
+        #         box = approx
+        #     # Draw the contour outline
+        #     cv2.drawContours(frame, [biggest_contour], -1, (0, 255, 0), 3)
+        #     # Draw the four corners
+        #     for i, corner in enumerate(box):
+        #         print(f"Corner {i+1}: {corner}")
+        #         cv2.circle(frame, tuple(corner), 5, (255, 0, 0), -1)  # Mark corners for visualization
         if not contours:
             return update_frame()
         biggest = max(contours, key=cv2.contourArea)
@@ -101,7 +177,6 @@ def update_frame():
         cv2.rectangle(frame, (x+5, y+5), (x + w-5, y + h-5), (255, 0, 0), 2)
         copy_image = frame[y+5:y+h-5, x+5:x+w-5]
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
         img = Image.fromarray(frame)
 
         imgtk = ImageTk.PhotoImage(image=img)
@@ -124,18 +199,16 @@ def popupError(message):
     popupRoot.geometry('400x50+700+500')
     popupRoot.mainloop()
 
-
 def Process():
     global copy_image
     cropped_id_card = cv2.resize(copy_image, (500, 300))
-
     check_front_image = cropped_id_card[8:8+91, 14:14+126]
     check_back_image = cropped_id_card[98:98+56, 53:53+66]
 
     count = 0
     while True:
         # Tọa độ: (x=40, y=17, w=67, h=68)
-        check_front_image = cropped_id_card[0:0+100, 0:0+150]
+        check_front_image = cropped_id_card[0:0+90, 0:0+90]
         # Tọa độ: (x=53, y=98, w=66, h=56)
         check_back_image = cropped_id_card[98:98+56, 53:53+66]
         if check_front(check_front_image):
@@ -149,11 +222,11 @@ def Process():
             
             x_date,y_date,w_date,h_date = [280,180,163,29]
             Date_pos = cropped_id_card[y_date:y_date+h_date, x_date:x_date+w_date]
-            Expire_pos = cropped_id_card[268:268+32, 71:71+72]
-            gray_expire = cv2.cvtColor(Expire_pos, cv2.COLOR_BGR2GRAY)
-            gray_date = cv2.cvtColor(Date_pos, cv2.COLOR_BGR2GRAY)
+            # Expire_pos = cropped_id_card[268:268+32, 71:71+72]
+            # gray_expire = cv2.cvtColor(Expire_pos, cv2.COLOR_BGR2GRAY)
+            # gray_date = cv2.cvtColor(Date_pos, cv2.COLOR_BGR2GRAY)
             ID = ocr_model.ocr(ID_pos)
-            Date = ocr_model.ocr(gray_date)
+            Date = ocr_model.ocr(Date_pos)
             try:
                 if Date[0][0][1][0] is not None:
                     ID = str(ID[0][0][1][0])
