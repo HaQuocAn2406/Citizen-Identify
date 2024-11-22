@@ -5,15 +5,13 @@ from paddleocr import PaddleOCR
 from datetime import datetime
 from PIL import Image, ImageTk
 import numpy as np
-
+import readData
+import os
 ocr_model = PaddleOCR(lang='en')
-
 root = Tk()
 root.title("Xác Thực CCCD")
-root.geometry("1200x750") 
-
+root.geometry("1200x750")
 video_width, video_height = 500, 300
-
 video_label = Label(root, width=video_width, height=video_height)
 video_label.place(x=0, y=0)
 crop_label = Label(root, width=video_width, height=video_height)
@@ -50,6 +48,7 @@ cap = cv2.VideoCapture(0)
 
 copy_image = None
 
+
 def get_limits(color):
     c = np.uint8([[color]])  # BGR values
     hsvC = cv2.cvtColor(c, cv2.COLOR_BGR2HSV)
@@ -69,6 +68,7 @@ def get_limits(color):
 
     return lowerLimit, upperLimit
 
+
 def check_front(image):
     hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     lower_red1 = np.array([0, 100, 100])
@@ -77,7 +77,7 @@ def check_front(image):
     # upper_red2 = np.array([180, 255, 255])
     mask1 = cv2.inRange(hsv_image, lower_red1, upper_red1)
     # mask2 = cv2.inRange(hsv_image, lower_red2, upper_red2)
-    mask = mask1 
+    mask = mask1
     if np.any(mask):
         return True
     else:
@@ -87,15 +87,19 @@ def check_front(image):
 def check_back(image):
     hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     lower_yellow = np.array([15, 100, 100])
-    upper_yellow = np.array([40, 255, 255])  
+    upper_yellow = np.array([40, 255, 255])
     mask = cv2.inRange(hsv_image, lower_yellow, upper_yellow)
     if np.any(mask):
         return True
     else:
         return False
-red =[0,0,255]
-u,p = get_limits(color=red)
-print(u,p)
+
+
+red = [0, 0, 255]
+u, p = get_limits(color=red)
+print(u, p)
+
+
 def update_frame():
     global copy_image
 
@@ -103,13 +107,15 @@ def update_frame():
     if ret:
 
         frame = cv2.resize(frame, (int(video_width), int(video_height)))
-        
+
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         blurred = cv2.GaussianBlur(gray, (7, 7), 0)
         # thresh1 = cv2.adaptiveThreshold(blurred,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY_INV,11,2)
-        _, thresh1 = cv2.threshold(gray,0, 255, cv2.THRESH_BINARY +cv2.THRESH_OTSU)
+        _, thresh1 = cv2.threshold(
+            gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
         print(_)
-        contours, _ = cv2.findContours(thresh1, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contours, _ = cv2.findContours(
+            thresh1, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         cv2.imshow("Binary", thresh1)
         # if contours:
         #     # Find the biggest contour based on area
@@ -186,18 +192,21 @@ def update_frame():
 
     video_label.after(1, update_frame)
 
+
 def popupError(message):
     popupRoot = Tk()
     popupRoot.title("Lỗi")
+
     def exit():
         popupRoot.destroy()
-    my_font =Font(family="Times New Roman", size=20, weight="bold")
-    message =Label(popupRoot,text=message,font=my_font)
-    popupButton = Button(popupRoot, text="Ok",bg="Gray", command=exit)
+    my_font = Font(family="Times New Roman", size=20, weight="bold")
+    message = Label(popupRoot, text=message, font=my_font)
+    popupButton = Button(popupRoot, text="Ok", bg="Gray", command=exit)
     message.pack()
     popupButton.pack()
     popupRoot.geometry('400x50+700+500')
     popupRoot.mainloop()
+
 
 def Process():
     global copy_image
@@ -217,11 +226,12 @@ def Process():
             # Mã Căn Cước Tọa độ: (x=198, y=123, w=179, h=41)
             # Ngày Sinh: Tọa độ: (x=282, y=192, w=163, h=29)
             # Ngày hết hạn: Tọa độ: (x=71, y=268, w=72, h=32)
-            x_ID,y_ID,w_ID,h_ID = [190,115,195,39]
+            x_ID, y_ID, w_ID, h_ID = [190, 115, 195, 39]
             ID_pos = cropped_id_card[y_ID:y_ID+h_ID, x_ID:x_ID+w_ID]
-            
-            x_date,y_date,w_date,h_date = [280,180,163,29]
-            Date_pos = cropped_id_card[y_date:y_date+h_date, x_date:x_date+w_date]
+
+            x_date, y_date, w_date, h_date = [280, 180, 163, 29]
+            Date_pos = cropped_id_card[y_date:y_date +
+                                       h_date, x_date:x_date+w_date]
             # Expire_pos = cropped_id_card[268:268+32, 71:71+72]
             # gray_expire = cv2.cvtColor(Expire_pos, cv2.COLOR_BGR2GRAY)
             # gray_date = cv2.cvtColor(Date_pos, cv2.COLOR_BGR2GRAY)
@@ -245,7 +255,7 @@ def Process():
             Day = Date[:2]
             Month = Date[2:4]
             Year = ID[4:6]
-            Date = Year+Month+Day
+
             Year_Expire = 99
             print(f"Age :{age}")
             if 14 <= age < 23:
@@ -265,12 +275,8 @@ def Process():
             if Year_Expire > 100:
                 Year_Expire = str(Year_Expire)
                 Year_Expire = Year_Expire[1:]
-            Expire = str(Year_Expire)+Month+Day
             print(f"Date ={Date}")
-            print(f"Expire = {Expire}")
-            BAC = ID[3:]+Date+Expire
-            print(f"BAC:{BAC}")
-
+            print(f"Expire = {Day+"/"+Month+"/"+str(Year_Expire)}")
             Facebox.configure(state=NORMAL)
             Facebox.delete(0, END)
             Facebox.insert(END, string="Mặt Trước")
@@ -291,10 +297,10 @@ def Process():
             Expirebox.insert(END, string=Day+"/"+Month+"/"+str(Year_Expire))
             Expirebox.configure(state=DISABLED)
 
-            BacBOX.configure(state=NORMAL)
-            BacBOX.delete(0, END)
-            BacBOX.insert(END, string=BAC)
-            BacBOX.configure(state=DISABLED)
+            # BacBOX.configure(state=NORMAL)
+            # BacBOX.delete(0, END)
+            # BacBOX.insert(END, string=BAC)
+            # BacBOX.configure(state=DISABLED)
 
             # Expire = ocr_model.ocr(gray_expire)
             # cv2.putText(cropped_id_card, ID, (198, 123),
@@ -306,14 +312,23 @@ def Process():
             # cv2.putText(cropped_id_card, f"BAC:{
             #             BAC}", (0, 290), cv2.FONT_HERSHEY_SIMPLEX, 1, (200, 0, 0), 2)
 
-            cv2.rectangle(cropped_id_card, ((x_ID, y_ID)),(x_ID+w_ID, y_ID+h_ID), (0, 255, 0), 1, cv2.LINE_AA)
+            cv2.rectangle(cropped_id_card, ((x_ID, y_ID)),
+                          (x_ID+w_ID, y_ID+h_ID), (0, 255, 0), 1, cv2.LINE_AA)
 
-            cv2.rectangle(cropped_id_card, ((x_date, y_date)),(x_date+w_date, y_date+h_date), (0, 255, 0), 1, cv2.LINE_AA)
+            cv2.rectangle(cropped_id_card, ((x_date, y_date)),
+                          (x_date+w_date, y_date+h_date), (0, 255, 0), 1, cv2.LINE_AA)
             # cv2.rectangle(cropped_id_card,((71,268)),(71+72,268+32),(0,255,0),1,cv2.LINE_AA)
             # print(f"ID: {ID[0][0][1][0]}")
             # print(f"Date: {Date[0][0][1][0]}")
             # cv2.imshow("Front Position", check_front_image)
             # cv2.imshow("ID_pos", ID_pos)
+            Document_number = ID[3:]
+            Date_of_birth = Year+Month+Day
+            Day_of_Expire = str(Year_Expire)+Month+Day
+            print(Document_number)
+            print(Date_of_birth)
+            print(Day_of_Expire)
+            readData.getMRZandImage(Document_number,Date_of_birth,Day_of_Expire)
             break
         elif check_back(check_back_image):
             print("Mặt sau")
@@ -337,8 +352,9 @@ def Process():
             print(f'Line 2: {line[1]}')
             print(f'Line 3: {line[2]}')
             ID = str(line[0][15:27])
-            Date = str(line[1][:6])
-            Expire = str(line[1][8:14])
+            Document_number = ID[3:]
+            Date_of_birth = str(line[1][:6])
+            Date_of_expire = str(line[1][8:14])
             BAC = line[0][5:14]+line[1][:6]+line[1][8:14]
 
             Facebox.configure(state=NORMAL)
@@ -365,9 +381,6 @@ def Process():
             BacBOX.delete(0, END)
             BacBOX.insert(END, string=BAC)
             BacBOX.configure(state=DISABLED)
-
-            cv2.putText(cropped_id_card, f"BAC:{BAC}", (6, 188), cv2.FONT_HERSHEY_SIMPLEX, 1, (200, 0, 0), 2)
-            cv2.rectangle(cropped_id_card, ((6, 188)),(6+487, 188+107), (0, 255, 0), 1, cv2.LINE_AA)
             # cv2.imshow("Back Position", check_back_image)
             cv2.imshow("mrz_pos", mrz_pos)
             break
@@ -404,19 +417,22 @@ def Process():
 
                 popupError("Vui Lòng Thử Lại")
                 break
-    cropped_id_card = cv2.cvtColor(cropped_id_card, cv2.COLOR_BGR2RGB)
+    facial_image = cv2.imread('output.jpg')
+    facial_image = cv2.cvtColor(facial_image,cv2.COLOR_BGR2RGB)
     # Convert cropped frame to a PIL image
-    img = Image.fromarray(cropped_id_card)
+    img = Image.fromarray(facial_image)
     # Convert PIL image to ImageTk format
     imgtk = ImageTk.PhotoImage(image=img)
     # Update the crop_label with the cropped image
     crop_label.imgtk = imgtk
     crop_label.configure(image=imgtk)
+    os.remove("output.png")
 
 def exit_program():
 
     cap.release()
     root.destroy()
+
 
 def clear():
     crop_label.configure(image='')
@@ -446,11 +462,15 @@ def clear():
     BacBOX.insert(END, string="")
     BacBOX.configure(state=DISABLED)
 
-exit_button = Button(root, text="Exit", command=exit_program,width=10, height=2, background='Gray', activebackground='Red')
+
+exit_button = Button(root, text="Exit", command=exit_program,
+                     width=10, height=2, background='Gray', activebackground='Red')
 exit_button.place(x=550, y=600)
-process_button = Button(root, text="Scan", command=Process,width=10, height=2, background='Gray', activebackground='Green')
+process_button = Button(root, text="Scan", command=Process,
+                        width=10, height=2, background='Gray', activebackground='Green')
 process_button.place(x=750, y=600)
-clear_button = Button(root, text="Clear", command=clear, width=10,height=2, background='Gray', activebackground='Green')
+clear_button = Button(root, text="Clear", command=clear, width=10,
+                      height=2, background='Gray', activebackground='Green')
 clear_button.place(x=950, y=600)
 
 
