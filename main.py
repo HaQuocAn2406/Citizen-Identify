@@ -37,11 +37,6 @@ Expire_label.place(x=20, y=650)
 Expirebox = Entry(state=DISABLED, fg='White')
 Expirebox.place(x=100, y=650)
 
-BAC_label = Label(root, text="BAC")
-BAC_label.place(x=20, y=700)
-BacBOX = Entry(state=DISABLED, fg='White', width=30)
-BacBOX.place(x=100, y=700)
-
 key = 0
 
 cap = cv2.VideoCapture(0)
@@ -69,7 +64,7 @@ def get_limits(color):
     return lowerLimit, upperLimit
 
 
-def check_front(image):
+def isFrontSide(image):
     hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     lower_red1 = np.array([0, 100, 100])
     upper_red1 = np.array([10, 255, 255])
@@ -84,7 +79,7 @@ def check_front(image):
         return False
 
 
-def check_back(image):
+def isBackSide(image):
     hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     lower_yellow = np.array([15, 100, 100])
     upper_yellow = np.array([40, 255, 255])
@@ -211,18 +206,18 @@ def popupError(message):
 def Process():
     global copy_image
     cropped_id_card = cv2.resize(copy_image, (500, 300))
-    check_front_image = cropped_id_card[8:8+91, 14:14+126]
-    check_back_image = cropped_id_card[98:98+56, 53:53+66]
+    isFrontSide_image = cropped_id_card[8:8+91, 14:14+126]
+    isBackSide_image = cropped_id_card[98:98+56, 53:53+66]
 
     count = 0
     while True:
         # Tọa độ: (x=40, y=17, w=67, h=68)
-        check_front_image = cropped_id_card[0:0+90, 0:0+90]
+        isFrontSide_image = cropped_id_card[0:0+90, 0:0+90]
         # Tọa độ: (x=53, y=98, w=66, h=56)
-        check_back_image = cropped_id_card[98:98+56, 53:53+66]
-        if check_front(check_front_image):
+        isBackSide_image = cropped_id_card[98:98+56, 53:53+66]
+        if isFrontSide(isFrontSide_image):
             print("Mặt Trước")
-            # cv2.imshow("Check Zone",check_front_image)
+            # cv2.imshow("Check Zone",isFrontSide_image)
             # Mã Căn Cước Tọa độ: (x=198, y=123, w=179, h=41)
             # Ngày Sinh: Tọa độ: (x=282, y=192, w=163, h=29)
             # Ngày hết hạn: Tọa độ: (x=71, y=268, w=72, h=32)
@@ -297,11 +292,6 @@ def Process():
             Expirebox.insert(END, string=Day+"/"+Month+"/"+str(Year_Expire))
             Expirebox.configure(state=DISABLED)
 
-            # BacBOX.configure(state=NORMAL)
-            # BacBOX.delete(0, END)
-            # BacBOX.insert(END, string=BAC)
-            # BacBOX.configure(state=DISABLED)
-
             # Expire = ocr_model.ocr(gray_expire)
             # cv2.putText(cropped_id_card, ID, (198, 123),
             #             cv2.FONT_HERSHEY_SIMPLEX, 1, (200, 0, 0), 2)
@@ -320,7 +310,7 @@ def Process():
             # cv2.rectangle(cropped_id_card,((71,268)),(71+72,268+32),(0,255,0),1,cv2.LINE_AA)
             # print(f"ID: {ID[0][0][1][0]}")
             # print(f"Date: {Date[0][0][1][0]}")
-            # cv2.imshow("Front Position", check_front_image)
+            # cv2.imshow("Front Position", isFrontSide_image)
             # cv2.imshow("ID_pos", ID_pos)
             Document_number = ID[3:]
             Date_of_birth = Year+Month+Day
@@ -330,9 +320,9 @@ def Process():
             print(Day_of_Expire)
             readData.getMRZandImage(Document_number,Date_of_birth,Day_of_Expire)
             break
-        elif check_back(check_back_image):
+        elif isBackSide(isBackSide_image):
             print("Mặt sau")
-            # cv2.imshow("Check Zone",check_back_image)
+            # cv2.imshow("Check Zone",isBackSide_image)
             # Mã MRZ: Tọa độ: (x=6, y=188, w=487, h=107)
             mrz_pos = cropped_id_card[188:188+107, 6:6+487]
             gray_mrz = cv2.cvtColor(mrz_pos, cv2.COLOR_BGR2GRAY)
@@ -377,11 +367,7 @@ def Process():
             Expirebox.insert(END, string=Expire)
             Expirebox.configure(state=DISABLED)
 
-            BacBOX.configure(state=NORMAL)
-            BacBOX.delete(0, END)
-            BacBOX.insert(END, string=BAC)
-            BacBOX.configure(state=DISABLED)
-            # cv2.imshow("Back Position", check_back_image)
+            # cv2.imshow("Back Position", isBackSide_image)
             cv2.imshow("mrz_pos", mrz_pos)
             break
         else:
@@ -409,11 +395,6 @@ def Process():
                 Expirebox.delete(0, END)
                 Expirebox.insert(END, string="")
                 Expirebox.configure(state=DISABLED)
-
-                BacBOX.configure(state=NORMAL)
-                BacBOX.delete(0, END)
-                BacBOX.insert(END, string="")
-                BacBOX.configure(state=DISABLED)
 
                 popupError("Vui Lòng Thử Lại")
                 break
@@ -456,12 +437,6 @@ def clear():
     Expirebox.delete(0, END)
     Expirebox.insert(END, string="")
     Expirebox.configure(state=DISABLED)
-
-    BacBOX.configure(state=NORMAL)
-    BacBOX.delete(0, END)
-    BacBOX.insert(END, string="")
-    BacBOX.configure(state=DISABLED)
-
 
 exit_button = Button(root, text="Exit", command=exit_program,
                      width=10, height=2, background='Gray', activebackground='Red')
