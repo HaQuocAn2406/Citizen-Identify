@@ -25,7 +25,7 @@ Facebox.place(x=100, y=500)
 ID_label = Label(root, text="Mã Căn Cước")
 ID_label.place(x=20, y=550)
 IDbox = Entry(state=DISABLED, fg='White')
-IDbox.place(x=100, y=550)
+IDbox.place(x=100, y=550)  
 
 Date_label = Label(root, text="Ngày Sinh")
 Date_label.place(x=20, y=600)
@@ -40,7 +40,7 @@ Expirebox.place(x=100, y=650)
 key = 0
 
 cap = cv2.VideoCapture(0)
-
+cap2 = cv2.VideoCapture(1)
 copy_image = None
 
 
@@ -97,8 +97,8 @@ print(u, p)
 
 def update_frame():
     global copy_image
-
     ret, frame = cap.read()
+    ret, frame2 = cap2.read()
     if ret:
 
         frame = cv2.resize(frame, (int(video_width), int(video_height)))
@@ -111,7 +111,8 @@ def update_frame():
         print(_)
         contours, _ = cv2.findContours(
             thresh1, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        cv2.imshow("Binary", thresh1)
+        # cv2.imshow("Binary", thresh1)
+        # cv2.imshow("Camera 2",frame2)
         # if contours:
         #     # Find the biggest contour based on area
         #     biggest_contour = max(contours, key=cv2.contourArea)
@@ -223,13 +224,8 @@ def Process():
             # Ngày hết hạn: Tọa độ: (x=71, y=268, w=72, h=32)
             x_ID, y_ID, w_ID, h_ID = [190, 115, 195, 39]
             ID_pos = cropped_id_card[y_ID:y_ID+h_ID, x_ID:x_ID+w_ID]
-
             x_date, y_date, w_date, h_date = [280, 180, 163, 29]
-            Date_pos = cropped_id_card[y_date:y_date +
-                                       h_date, x_date:x_date+w_date]
-            # Expire_pos = cropped_id_card[268:268+32, 71:71+72]
-            # gray_expire = cv2.cvtColor(Expire_pos, cv2.COLOR_BGR2GRAY)
-            # gray_date = cv2.cvtColor(Date_pos, cv2.COLOR_BGR2GRAY)
+            Date_pos = cropped_id_card[y_date:y_date +h_date, x_date:x_date+w_date]
             ID = ocr_model.ocr(ID_pos)
             Date = ocr_model.ocr(Date_pos)
             try:
@@ -239,39 +235,37 @@ def Process():
             except TypeError:
                 popupError("Vui Lòng Để CCCD Đúng Vị Trí")
                 break
-            # if Date[0][0][1][0] is not None:
-            #     ID = str(ID[0][0][1][0])
-            #     Date = str(Date[0][0][1][0]).replace("/", "")
-            # else:
-            #     popupError("Vui Lòng Thử Lại")
-            #     break
+            Document_number = ID[3:]
             now = datetime.now().date().year
-            age = now - int(Date[4:])
-            Day = Date[:2]
-            Month = Date[2:4]
-            Year = ID[4:6]
-
-            Year_Expire = 99
+            DayOfBirth = Date[:2]
+            MonthOfBirth = Date[2:4]
+            YearOfBirth = ID[4:6]
+            Date_of_birth = YearOfBirth+MonthOfBirth+DayOfBirth
+            age = (now - int(YearOfBirth))%100
             print(f"Age :{age}")
             if 14 <= age < 23:
                 print("Trường Hợp 25t")
-                Year_Expire = 25+int(Year)
+                DayOfExpire  = DayOfBirth
+                MonthOfExpire = MonthOfBirth
+                YearOfExpire = 25+int(YearOfBirth)
             elif 23 <= age < 38:
                 print("Trường Hợp 40t")
-                Year_Expire = 40+int(Year)
+                DayOfExpire  = DayOfBirth
+                MonthOfExpire = MonthOfBirth
+                YearOfExpire = 40+int(YearOfBirth)
             elif 38 <= age < 58:
                 print("Trường Hợp 60t")
-                Year_Expire = 60+int(Year)
+                DayOfExpire  = DayOfBirth
+                MonthOfExpire = MonthOfBirth
+                YearOfExpire = 60+int(YearOfBirth)
             else:
                 print("Trường Hợp Vô Thời Hạn")
-                Day = '31'
-                Month = '12'
-                Expire = "99"+Month+Day
-            if Year_Expire > 100:
-                Year_Expire = str(Year_Expire)
-                Year_Expire = Year_Expire[1:]
+                DayOfExpire = '31'
+                MonthOfExpire = '12'
+                YearOfExpire = "99"
+            Day_of_Expire =YearOfExpire+MonthOfBirth+DayOfExpire
             print(f"Date ={Date}")
-            print(f"Expire = {Day+"/"+Month+"/"+str(Year_Expire)}")
+            print(f"Expire = {DayOfExpire}/{MonthOfExpire}/{str(YearOfExpire)}")
             Facebox.configure(state=NORMAL)
             Facebox.delete(0, END)
             Facebox.insert(END, string="Mặt Trước")
@@ -284,23 +278,13 @@ def Process():
 
             Datebox.configure(state=NORMAL)
             Datebox.delete(0, END)
-            Datebox.insert(END, string=Day+"/"+Month+"/"+Year)
+            Datebox.insert(END, string=DayOfBirth+"/"+MonthOfBirth+"/"+YearOfBirth)
             Datebox.configure(state=DISABLED)
 
             Expirebox.configure(state=NORMAL)
             Expirebox.delete(0, END)
-            Expirebox.insert(END, string=Day+"/"+Month+"/"+str(Year_Expire))
+            Expirebox.insert(END, string=DayOfExpire+"/"+MonthOfExpire+"/"+str(YearOfExpire))
             Expirebox.configure(state=DISABLED)
-
-            # Expire = ocr_model.ocr(gray_expire)
-            # cv2.putText(cropped_id_card, ID, (198, 123),
-            #             cv2.FONT_HERSHEY_SIMPLEX, 1, (200, 0, 0), 2)
-            # cv2.putText(cropped_id_card, Date, (286, 182),
-            #             cv2.FONT_HERSHEY_SIMPLEX, 1, (200, 0, 0), 2)
-            # cv2.putText(cropped_id_card, f"Expire:{Expire}", ((
-            #     40, 250)), cv2.FONT_HERSHEY_SIMPLEX, 1, (200, 0, 0), 2)
-            # cv2.putText(cropped_id_card, f"BAC:{
-            #             BAC}", (0, 290), cv2.FONT_HERSHEY_SIMPLEX, 1, (200, 0, 0), 2)
 
             cv2.rectangle(cropped_id_card, ((x_ID, y_ID)),
                           (x_ID+w_ID, y_ID+h_ID), (0, 255, 0), 1, cv2.LINE_AA)
@@ -312,9 +296,6 @@ def Process():
             # print(f"Date: {Date[0][0][1][0]}")
             # cv2.imshow("Front Position", isFrontSide_image)
             # cv2.imshow("ID_pos", ID_pos)
-            Document_number = ID[3:]
-            Date_of_birth = Year+Month+Day
-            Day_of_Expire = str(Year_Expire)+Month+Day
             print(Document_number)
             print(Date_of_birth)
             print(Day_of_Expire)
@@ -327,10 +308,6 @@ def Process():
             mrz_pos = cropped_id_card[188:188+107, 6:6+487]
             gray_mrz = cv2.cvtColor(mrz_pos, cv2.COLOR_BGR2GRAY)
             mrz = ocr_model.ocr(gray_mrz)
-            BAC = ""
-            ID = ""
-            Date = ""
-            Expire = ""
             line = []
             for item in mrz:  # Truy cập vào danh sách con đầu tiên
                 for sub_item in item:  # Truy cập vào từng phần tử trong danh sách con
@@ -345,7 +322,6 @@ def Process():
             Document_number = ID[3:]
             Date_of_birth = str(line[1][:6])
             Date_of_expire = str(line[1][8:14])
-            BAC = line[0][5:14]+line[1][:6]+line[1][8:14]
 
             Facebox.configure(state=NORMAL)
             Facebox.delete(0, END)
@@ -354,21 +330,21 @@ def Process():
 
             IDbox.configure(state=NORMAL)
             IDbox.delete(0, END)
-            IDbox.insert(END, string=ID)
+            IDbox.insert(END, string=Document_number)
             IDbox.configure(state=DISABLED)
 
             Datebox.configure(state=NORMAL)
             Datebox.delete(0, END)
-            Datebox.insert(END, string=Date)
+            Datebox.insert(END, string=Date_of_birth)
             Datebox.configure(state=DISABLED)
 
             Expirebox.configure(state=NORMAL)
             Expirebox.delete(0, END)
-            Expirebox.insert(END, string=Expire)
+            Expirebox.insert(END, string=Date_of_expire)
             Expirebox.configure(state=DISABLED)
-
+            readData.getMRZandImage(Document_number,Date_of_birth,Date_of_expire)
             # cv2.imshow("Back Position", isBackSide_image)
-            cv2.imshow("mrz_pos", mrz_pos)
+            # cv2.imshow("mrz_pos", mrz_pos)
             break
         else:
             cropped_id_card = cv2.rotate(cropped_id_card, cv2.ROTATE_180)
