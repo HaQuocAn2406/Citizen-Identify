@@ -74,7 +74,6 @@ def show_popup():
     threading.Thread(target=scan_frame, args=(popup,), daemon=True).start()
 def scan_frame():
     global copy_image,document_number, full_name, date_of_birth, date_of_expire
-    """Chụp và lưu khung hình hiện tại từ webcam."""
     ret, frame = cap.read()
     if ret:
         cv2.imwrite("facial.jpg", frame)
@@ -210,6 +209,7 @@ def main():
 
     # Khởi tạo tkinter
     root = Tk()
+    root.geometry("1200x750")
     root.title("Document Info Viewer")
 
     # Biến thông tin
