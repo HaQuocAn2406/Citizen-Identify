@@ -7,6 +7,9 @@ from PIL import Image, ImageTk
 import numpy as np
 import readData
 import os
+import face_recognition
+import threading
+import time
 ocr_model = PaddleOCR(lang='en')
 root = Tk()
 root.title("Xác Thực CCCD")
@@ -39,8 +42,8 @@ Expirebox.place(x=100, y=650)
 
 key = 0
 
-cap = cv2.VideoCapture(0)
-cap2 = cv2.VideoCapture(1)
+cap = cv2.VideoCapture(1)
+cap2 = cv2.VideoCapture(0)
 copy_image = None
 
 
@@ -90,29 +93,27 @@ def isBackSide(image):
         return False
 
 
-red = [0, 0, 255]
-u, p = get_limits(color=red)
-print(u, p)
+# red = [0, 0, 255]
+# u, p = get_limits(color=red)
+# print(u, p)
 
 
 def update_frame():
     global copy_image
+    global face
     ret, frame = cap.read()
     ret, frame2 = cap2.read()
     if ret:
 
         frame = cv2.resize(frame, (int(video_width), int(video_height)))
-
+        frame2 = cv2.resize(frame2, (int(video_width), int(video_height)))
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         blurred = cv2.GaussianBlur(gray, (7, 7), 0)
         # thresh1 = cv2.adaptiveThreshold(blurred,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY_INV,11,2)
-        _, thresh1 = cv2.threshold(
-            gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-        print(_)
-        contours, _ = cv2.findContours(
-            thresh1, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        _, thresh1 = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        contours, _ = cv2.findContours(thresh1, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         # cv2.imshow("Binary", thresh1)
-        # cv2.imshow("Camera 2",frame2)
+        cv2.imshow("Camera 2",frame2)
         # if contours:
         #     # Find the biggest contour based on area
         #     biggest_contour = max(contours, key=cv2.contourArea)
@@ -178,6 +179,7 @@ def update_frame():
         # cv2.drawContours(frame,[box],-1,(0,0,255),2)
         cv2.rectangle(frame, (x+5, y+5), (x + w-5, y + h-5), (255, 0, 0), 2)
         copy_image = frame[y+5:y+h-5, x+5:x+w-5]
+        face = frame2
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         img = Image.fromarray(frame)
 
@@ -186,6 +188,14 @@ def update_frame():
         video_label.imgtk = imgtk
         video_label.configure(image=imgtk)
 
+        face = cv2.cvtColor(face,cv2.COLOR_BGR2RGB)
+        # Convert cropped frame to a PIL image
+        img = Image.fromarray(face)
+        # Convert PIL image to ImageTk format
+        imgtk2 = ImageTk.PhotoImage(image=img)
+        # Update the crop_label with the cropped image
+        crop_label.imgtk = imgtk2
+        crop_label.configure(image=imgtk2)
     video_label.after(1, update_frame)
 
 
@@ -202,14 +212,22 @@ def popupError(message):
     popupButton.pack()
     popupRoot.geometry('400x50+700+500')
     popupRoot.mainloop()
-
-
-def Process():
+def show_popup():
+    """Hiển thị popup thông báo."""
+    popup = Toplevel(root)
+    popup.title("Thông báo")
+    popup.geometry("300x100")
+    Label(popup, text="Chương trình đang xử lý...", font=("Arial", 12)).pack(pady=20)
+    # Khởi chạy công việc trên luồng riêng
+    threading.Thread(target=Process, args=(popup,), daemon=True).start()
+def Process(popup):
     global copy_image
+    global face
+    face = cv2.cvtColor(face,cv2.COLOR_BGR2RGB)
+    cv2.imwrite('face_image.jpg', face)
     cropped_id_card = cv2.resize(copy_image, (500, 300))
     isFrontSide_image = cropped_id_card[8:8+91, 14:14+126]
     isBackSide_image = cropped_id_card[98:98+56, 53:53+66]
-
     count = 0
     while True:
         # Tọa độ: (x=40, y=17, w=67, h=68)
@@ -247,23 +265,23 @@ def Process():
                 print("Trường Hợp 25t")
                 DayOfExpire  = DayOfBirth
                 MonthOfExpire = MonthOfBirth
-                YearOfExpire = 25+int(YearOfBirth)
+                YearOfExpire = str(25+int(YearOfBirth))
             elif 23 <= age < 38:
                 print("Trường Hợp 40t")
                 DayOfExpire  = DayOfBirth
                 MonthOfExpire = MonthOfBirth
-                YearOfExpire = 40+int(YearOfBirth)
+                YearOfExpire = str(40+int(YearOfBirth))
             elif 38 <= age < 58:
                 print("Trường Hợp 60t")
                 DayOfExpire  = DayOfBirth
                 MonthOfExpire = MonthOfBirth
-                YearOfExpire = 60+int(YearOfBirth)
+                YearOfExpire = str(60+int(YearOfBirth))
             else:
                 print("Trường Hợp Vô Thời Hạn")
                 DayOfExpire = '31'
                 MonthOfExpire = '12'
                 YearOfExpire = "99"
-            Day_of_Expire =YearOfExpire+MonthOfBirth+DayOfExpire
+            Day_of_Expire =YearOfExpire+MonthOfExpire+DayOfExpire
             print(f"Date ={Date}")
             print(f"Expire = {DayOfExpire}/{MonthOfExpire}/{str(YearOfExpire)}")
             Facebox.configure(state=NORMAL)
@@ -299,7 +317,9 @@ def Process():
             print(Document_number)
             print(Date_of_birth)
             print(Day_of_Expire)
-            readData.getMRZandImage(Document_number,Date_of_birth,Day_of_Expire)
+            # show_popup()
+            readData.getImage(Document_number,Date_of_birth,Day_of_Expire)
+            popup.destroy()  # Đóng popup khi xử lý xong
             break
         elif isBackSide(isBackSide_image):
             print("Mặt sau")
@@ -342,7 +362,9 @@ def Process():
             Expirebox.delete(0, END)
             Expirebox.insert(END, string=Date_of_expire)
             Expirebox.configure(state=DISABLED)
-            readData.getMRZandImage(Document_number,Date_of_birth,Date_of_expire)
+            # show_popup()
+            readData.getImage(Document_number,Date_of_birth,Date_of_expire)
+            popup.destroy()  # Đóng popup khi xử lý xong
             # cv2.imshow("Back Position", isBackSide_image)
             # cv2.imshow("mrz_pos", mrz_pos)
             break
@@ -371,20 +393,25 @@ def Process():
                 Expirebox.delete(0, END)
                 Expirebox.insert(END, string="")
                 Expirebox.configure(state=DISABLED)
-
                 popupError("Vui Lòng Thử Lại")
+                popup.destroy()  # Đóng popup khi xử lý xong
                 break
     facial_image = cv2.imread('output.jpg')
     facial_image = cv2.cvtColor(facial_image,cv2.COLOR_BGR2RGB)
-    # Convert cropped frame to a PIL image
-    img = Image.fromarray(facial_image)
-    # Convert PIL image to ImageTk format
-    imgtk = ImageTk.PhotoImage(image=img)
-    # Update the crop_label with the cropped image
-    crop_label.imgtk = imgtk
-    crop_label.configure(image=imgtk)
-    os.remove("output.png")
+    img_encoding = face_recognition.face_encodings(facial_image)[0]
 
+    real_image = cv2.imread('face_image.jpg')
+    real_image = cv2.cvtColor(real_image,cv2.COLOR_BGR2RGB)
+    img_encoding2 = face_recognition.face_encodings(real_image)[0]
+    rs = face_recognition.compare_faces([img_encoding],img_encoding2)
+    print(rs)
+    if rs[0] == True:
+        popupError("Xác Thực Thành Công")
+    else:
+        popupError("Xác Thực Thất Bại")
+    os.remove("output.jpg")
+    os.remove("face_image.jpg")
+    popup.destroy()
 def exit_program():
 
     cap.release()
@@ -417,7 +444,7 @@ def clear():
 exit_button = Button(root, text="Exit", command=exit_program,
                      width=10, height=2, background='Gray', activebackground='Red')
 exit_button.place(x=550, y=600)
-process_button = Button(root, text="Scan", command=Process,
+process_button = Button(root, text="Scan", command=show_popup,
                         width=10, height=2, background='Gray', activebackground='Green')
 process_button.place(x=750, y=600)
 clear_button = Button(root, text="Clear", command=clear, width=10,

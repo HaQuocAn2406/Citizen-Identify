@@ -350,7 +350,7 @@ def read_EF(data,SSC):
 # document_number = '202033433'
 # date_of_birth = '020624'
 # date_of_expire = '270624'
-def getMRZandImage(Document_number,Date_of_birth,Date_of_expire):
+def getImage(Document_number,Date_of_birth,Date_of_expire):
     global K_enc_NEW, K_mac_NEW
     document_number = Document_number
     date_of_birth = Date_of_birth
@@ -417,3 +417,9 @@ def getMRZandImage(Document_number,Date_of_birth,Date_of_expire):
     mrz_from_ic,ssc = read_EF('0101',bytes.fromhex(ssc))
     ascii_string = hex_to_ascii(mrz_from_ic[5:].hex())
     print("ASCII String:", ascii_string)
+    docID = ascii_string[15:27]
+    name_part = ascii_string[60:]  # Phần này chứa tên (dưới đây là ví dụ cắt phần có tên từ mã MRZ)
+    
+    # Loại bỏ ký tự '<' và thay thế bằng dấu cách
+    full_name = name_part.replace('<', ' ').strip()
+    return full_name,docID
