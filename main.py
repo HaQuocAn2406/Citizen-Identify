@@ -12,6 +12,7 @@ import threading
 import time
 ocr_model = PaddleOCR(lang='en')
 root = Tk()
+
 root.title("Xác Thực CCCD")
 root.geometry("1200x750")
 video_width, video_height = 500, 300
@@ -19,7 +20,8 @@ video_label = Label(root, width=video_width, height=video_height)
 video_label.place(x=0, y=0)
 crop_label = Label(root, width=video_width, height=video_height)
 crop_label.place(x=550, y=0)
-
+message_label =Label(root, text="", font=("Arial", 14), fg="red")
+message_label.pack()
 Face = Label(root, text="Mặt Căn Cước")
 Face.place(x=20, y=500)
 Facebox = Entry(state=DISABLED, fg='White')
@@ -42,8 +44,8 @@ Expirebox.place(x=100, y=650)
 
 key = 0
 
-cap = cv2.VideoCapture(1)
-cap2 = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(0)
+cap2 = cv2.VideoCapture(2)
 copy_image = None
 
 
@@ -103,8 +105,18 @@ def update_frame():
     global face
     ret, frame = cap.read()
     ret, frame2 = cap2.read()
-    if ret:
+    small_frame = cv2.resize(frame2, (0, 0), fx=0.25, fy=0.25)
+    rgb_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
 
+        # Detect faces
+    face_locations = face_recognition.face_locations(rgb_frame)
+
+        # Check number of faces
+    if len(face_locations) == 0 or len(face_locations) > 1:
+            message_label.config(text="Vui lòng canh chỉnh để DUY NHẤT gương mặt trong khung hình")
+    else:
+        message_label.config(text="Gương mặt hợp lệ!")
+    if ret:
         frame = cv2.resize(frame, (int(video_width), int(video_height)))
         frame2 = cv2.resize(frame2, (int(video_width), int(video_height)))
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -114,62 +126,6 @@ def update_frame():
         contours, _ = cv2.findContours(thresh1, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         # cv2.imshow("Binary", thresh1)
         cv2.imshow("Camera 2",frame2)
-        # if contours:
-        #     # Find the biggest contour based on area
-        #     biggest_contour = max(contours, key=cv2.contourArea)
-
-        #     # Use convex hull to get a simpler shape
-        #     hull = cv2.convexHull(biggest_contour)
-
-        #     # Approximate the contour to get 4 corners
-        #     epsilon = 0.02 * cv2.arcLength(hull, True)
-        #     approx = cv2.approxPolyDP(hull, epsilon, True)
-
-        #     # If the approximation has more than 4 points, reduce it to the largest rectangular approximation
-        #     if len(approx) >= 3:
-        #         rect = cv2.minAreaRect(biggest_contour)
-        #         box = cv2.boxPoints(rect)
-        #         box = np.int0(box)
-        #                 # Top-left point will have the smallest sum, bottom-right will have the largest sum
-        #         pts = approx.reshape(4, 2)
-        #         s = pts.sum(axis=1)
-        #         rect[0] = pts[np.argmin(s)]
-        #         rect[2] = pts[np.argmax(s)]
-        #         # Top-right point will have the smallest difference, bottom-left will have the largest difference
-        #         diff = np.diff(pts, axis=1)
-        #         rect[1] = pts[np.argmin(diff)]
-        #         rect[3] = pts[np.argmax(diff)]
-
-        #         # Compute the width and height of the new image
-        #         width_a = np.linalg.norm(rect[2] - rect[3])
-        #         width_b = np.linalg.norm(rect[1] - rect[0])
-        #         max_width = max(int(width_a), int(width_b))
-
-        #         height_a = np.linalg.norm(rect[1] - rect[2])
-        #         height_b = np.linalg.norm(rect[0] - rect[3])
-        #         max_height = max(int(height_a), int(height_b))
-
-        #         # Define the destination points to obtain a "scanned" view
-        #         dst = np.array([
-        #             [0, 0],
-        #             [max_width - 1, 0],
-        #             [max_width - 1, max_height - 1],
-        #             [0, max_height - 1]
-        #         ], dtype="float32")
-        #                 # Compute the perspective transform matrix and apply it
-        #         matrix = cv2.getPerspectiveTransform(rect, dst)
-        #         warped = cv2.warpPerspective(frame, matrix, (max_width, max_height))
-
-        #         # Display or save the cropped and transformed image
-        #         cv2.imshow("Scanned Image", warped)
-        #     else:
-        #         box = approx
-        #     # Draw the contour outline
-        #     cv2.drawContours(frame, [biggest_contour], -1, (0, 255, 0), 3)
-        #     # Draw the four corners
-        #     for i, corner in enumerate(box):
-        #         print(f"Corner {i+1}: {corner}")
-        #         cv2.circle(frame, tuple(corner), 5, (255, 0, 0), -1)  # Mark corners for visualization
         if not contours:
             return update_frame()
         biggest = max(contours, key=cv2.contourArea)
@@ -196,7 +152,7 @@ def update_frame():
         # Update the crop_label with the cropped image
         crop_label.imgtk = imgtk2
         crop_label.configure(image=imgtk2)
-    video_label.after(1, update_frame)
+    video_label.after(10, update_frame)
 
 
 def popupError(message):
@@ -220,30 +176,27 @@ def show_popup():
     Label(popup, text="Chương trình đang xử lý...", font=("Arial", 12)).pack(pady=20)
     # Khởi chạy công việc trên luồng riêng
     threading.Thread(target=Process, args=(popup,), daemon=True).start()
-def Process(popup):
+def Process():
+    
     global copy_image
     global face
     face = cv2.cvtColor(face,cv2.COLOR_BGR2RGB)
     cv2.imwrite('face_image.jpg', face)
-    cropped_id_card = cv2.resize(copy_image, (500, 300))
-    isFrontSide_image = cropped_id_card[8:8+91, 14:14+126]
-    isBackSide_image = cropped_id_card[98:98+56, 53:53+66]
     count = 0
     while True:
-        # Tọa độ: (x=40, y=17, w=67, h=68)
-        isFrontSide_image = cropped_id_card[0:0+90, 0:0+90]
-        # Tọa độ: (x=53, y=98, w=66, h=56)
-        isBackSide_image = cropped_id_card[98:98+56, 53:53+66]
+        isFrontSide_image = copy_image[0:0+83, 0:0+132]
+            # Tọa độ: (x=53, y=98, w=66, h=56)
+        isBackSide_image = copy_image[98:98+56, 53:53+66]
         if isFrontSide(isFrontSide_image):
             print("Mặt Trước")
             # cv2.imshow("Check Zone",isFrontSide_image)
             # Mã Căn Cước Tọa độ: (x=198, y=123, w=179, h=41)
             # Ngày Sinh: Tọa độ: (x=282, y=192, w=163, h=29)
             # Ngày hết hạn: Tọa độ: (x=71, y=268, w=72, h=32)
-            x_ID, y_ID, w_ID, h_ID = [190, 115, 195, 39]
-            ID_pos = cropped_id_card[y_ID:y_ID+h_ID, x_ID:x_ID+w_ID]
-            x_date, y_date, w_date, h_date = [280, 180, 163, 29]
-            Date_pos = cropped_id_card[y_date:y_date +h_date, x_date:x_date+w_date]
+            x_ID, y_ID, w_ID, h_ID = [190, 92, 187, 35]
+            ID_pos = copy_image[y_ID:y_ID+h_ID, x_ID:x_ID+w_ID]
+            x_date, y_date, w_date, h_date = [275, 151, 118 ,24]
+            Date_pos = copy_image[y_date:y_date +h_date, x_date:x_date+w_date]
             ID = ocr_model.ocr(ID_pos)
             Date = ocr_model.ocr(Date_pos)
             try:
@@ -304,11 +257,11 @@ def Process(popup):
             Expirebox.insert(END, string=DayOfExpire+"/"+MonthOfExpire+"/"+str(YearOfExpire))
             Expirebox.configure(state=DISABLED)
 
-            cv2.rectangle(cropped_id_card, ((x_ID, y_ID)),
-                          (x_ID+w_ID, y_ID+h_ID), (0, 255, 0), 1, cv2.LINE_AA)
+            # cv2.rectangle(cropped_id_card, ((x_ID, y_ID)),
+            #               (x_ID+w_ID, y_ID+h_ID), (0, 255, 0), 1, cv2.LINE_AA)
 
-            cv2.rectangle(cropped_id_card, ((x_date, y_date)),
-                          (x_date+w_date, y_date+h_date), (0, 255, 0), 1, cv2.LINE_AA)
+            # cv2.rectangle(cropped_id_card, ((x_date, y_date)),
+            #               (x_date+w_date, y_date+h_date), (0, 255, 0), 1, cv2.LINE_AA)
             # cv2.rectangle(cropped_id_card,((71,268)),(71+72,268+32),(0,255,0),1,cv2.LINE_AA)
             # print(f"ID: {ID[0][0][1][0]}")
             # print(f"Date: {Date[0][0][1][0]}")
@@ -319,13 +272,13 @@ def Process(popup):
             print(Day_of_Expire)
             # show_popup()
             readData.getImage(Document_number,Date_of_birth,Day_of_Expire)
-            popup.destroy()  # Đóng popup khi xử lý xong
+            # popup.destroy()  # Đóng popup khi xử lý xong
             break
         elif isBackSide(isBackSide_image):
             print("Mặt sau")
             # cv2.imshow("Check Zone",isBackSide_image)
             # Mã MRZ: Tọa độ: (x=6, y=188, w=487, h=107)
-            mrz_pos = cropped_id_card[188:188+107, 6:6+487]
+            mrz_pos = copy_image[188:188+107, 6:6+487]
             gray_mrz = cv2.cvtColor(mrz_pos, cv2.COLOR_BGR2GRAY)
             mrz = ocr_model.ocr(gray_mrz)
             line = []
@@ -364,12 +317,12 @@ def Process(popup):
             Expirebox.configure(state=DISABLED)
             # show_popup()
             readData.getImage(Document_number,Date_of_birth,Date_of_expire)
-            popup.destroy()  # Đóng popup khi xử lý xong
+            # popup.destroy()  # Đóng popup khi xử lý xong
             # cv2.imshow("Back Position", isBackSide_image)
             # cv2.imshow("mrz_pos", mrz_pos)
             break
         else:
-            cropped_id_card = cv2.rotate(cropped_id_card, cv2.ROTATE_180)
+            copy_image = cv2.rotate(copy_image, cv2.ROTATE_180)
             count += 1
             if count >= 10:
                 crop_label.configure(image='')
@@ -394,7 +347,7 @@ def Process(popup):
                 Expirebox.insert(END, string="")
                 Expirebox.configure(state=DISABLED)
                 popupError("Vui Lòng Thử Lại")
-                popup.destroy()  # Đóng popup khi xử lý xong
+                # popup.destroy()  # Đóng popup khi xử lý xong
                 break
     facial_image = cv2.imread('output.jpg')
     facial_image = cv2.cvtColor(facial_image,cv2.COLOR_BGR2RGB)
@@ -411,7 +364,7 @@ def Process(popup):
         popupError("Xác Thực Thất Bại")
     os.remove("output.jpg")
     os.remove("face_image.jpg")
-    popup.destroy()
+    # popup.destroy()
 def exit_program():
 
     cap.release()
@@ -440,11 +393,12 @@ def clear():
     Expirebox.delete(0, END)
     Expirebox.insert(END, string="")
     Expirebox.configure(state=DISABLED)
+    
 
 exit_button = Button(root, text="Exit", command=exit_program,
                      width=10, height=2, background='Gray', activebackground='Red')
 exit_button.place(x=550, y=600)
-process_button = Button(root, text="Scan", command=show_popup,
+process_button = Button(root, text="Scan", command=Process,
                         width=10, height=2, background='Gray', activebackground='Green')
 process_button.place(x=750, y=600)
 clear_button = Button(root, text="Clear", command=clear, width=10,
