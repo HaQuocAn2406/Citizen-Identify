@@ -6,6 +6,7 @@ import numpy as np
 from datetime import datetime
 from paddleocr import PaddleOCR
 import readData
+from readCard import*
 ocr_model = PaddleOCR(lang='en')
 video_width, video_height = 500, 300
 def isFrontSide(image):
@@ -36,29 +37,28 @@ def update_video_feed():
     """Cập nhật video từ webcam."""
     global video_label, cap,copy_image
     while True:
-        ret, frame = cap.read()
+        # ret, frame = cap.read()
         ret, frame2 = cap2.read()
-        frame = cv2.resize(frame,(300,400))
-        # frame2 = cv2.resize(frame2,(300,400))
+        # frame = cv2.resize(frame,(500,300))
+        frame2 = cv2.resize(frame2,(500,300))
         if ret:
             # Chuyển đổi frame từ BGR sang RGB
             frame2 = cv2.resize(frame2, (int(video_width), int(video_height)))
             # frame2 = cv2.resize(frame2, (int(video_width), int(video_height)))
-            gray = cv2.cvtColor(frame2, cv2.COLOR_BGR2GRAY)
-            blurred = cv2.GaussianBlur(gray, (7, 7), 0)
-            # thresh1 = cv2.adaptiveThreshold(blurred,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY_INV,11,2)
-            _, thresh1 = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-            contours, _ = cv2.findContours(thresh1, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            if not contours:
-                return update_video_feed()
-            biggest = max(contours, key=cv2.contourArea)
-            rect = cv2.minAreaRect(biggest)
-            box = cv2.boxPoints(rect).astype('int')
-            x, y, w, h = cv2.boundingRect(biggest)
+            # gray = cv2.cvtColor(frame2, cv2.COLOR_BGR2GRAY)
+            # blurred = cv2.GaussianBlur(gray, (7, 7), 0)
+            # # thresh1 = cv2.adaptiveThreshold(blurred,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY_INV,11,2)
+            # _, thresh1 = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+            # contours, _ = cv2.findContours(thresh1, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            # if not contours:
+            #     return update_video_feed()
+            # biggest = max(contours, key=cv2.contourArea)
+            # rect = cv2.minAreaRect(biggest)
+            # box = cv2.boxPoints(rect).astype('int')
+            # x, y, w, h = cv2.boundingRect(biggest)
             # cv2.drawContours(frame,[box],-1,(0,0,255),2)
-            cv2.rectangle(frame2, (x+5, y+5), (x + w-5, y + h-5), (255, 0, 0), 2)
-            copy_image = frame2[y+5:y+h-5, x+5:x+w-5]
-
+            # cv2.rectangle(frame2, (x+5, y+5), (x + w-5, y + h-5), (255, 0, 0), 2)
+            copy_image = frame2
             frame2 = cv2.cvtColor(frame2, cv2.COLOR_BGR2RGB)
             frame_image = ImageTk.PhotoImage(image=Image.fromarray(frame2))
             video_label.configure(image=frame_image)
@@ -78,116 +78,118 @@ def scan_frame():
     if ret:
         cv2.imwrite("facial.jpg", frame)
         print("Frame đã được lưu thành 'facial.jpg'")
-    cropped_id_card = cv2.resize(copy_image, (500, 300))
-    isFrontSide_image = cropped_id_card[8:8+91, 14:14+126]
-    isBackSide_image = cropped_id_card[98:98+56, 53:53+66]
+    # cropped_id_card = cv2.resize(copy_image, (500, 300))
+    read(copy_image)
+    
+    # isFrontSide_image = cropped_id_card[8:8+91, 14:14+126]
+    # isBackSide_image = cropped_id_card[98:98+56, 53:53+66]
 
-    count = 0
-    while True:
-        # Tọa độ: (x=40, y=17, w=67, h=68)
-        isFrontSide_image = cropped_id_card[0:0+90, 0:0+90]
-        # Tọa độ: (x=53, y=98, w=66, h=56)
-        isBackSide_image = cropped_id_card[98:98+56, 53:53+66]
-        if isFrontSide(isFrontSide_image):
-            print("Mặt Trước")
-            # cv2.imshow("Check Zone",isFrontSide_image)
-            # Mã Căn Cước Tọa độ: (x=198, y=123, w=179, h=41)
-            # Ngày Sinh: Tọa độ: (x=282, y=192, w=163, h=29)
-            # Ngày hết hạn: Tọa độ: (x=71, y=268, w=72, h=32)
-            x_ID, y_ID, w_ID, h_ID = [190, 115, 195, 39]
-            ID_pos = cropped_id_card[y_ID:y_ID+h_ID, x_ID:x_ID+w_ID]
-            x_date, y_date, w_date, h_date = [280, 180, 163, 29]
-            Date_pos = cropped_id_card[y_date:y_date +h_date, x_date:x_date+w_date]
-            ID = ocr_model.ocr(ID_pos)
-            Date = ocr_model.ocr(Date_pos)
-            try:
-                if Date[0][0][1][0] is not None:
-                    ID = str(ID[0][0][1][0])
-                    Date = str(Date[0][0][1][0]).replace("/", "")
-            except TypeError:
-                # popupError("Vui Lòng Để CCCD Đúng Vị Trí")
-                break
-            Document_number = ID[3:]
-            now = datetime.now().date().year
-            DayOfBirth = Date[:2]
-            MonthOfBirth = Date[2:4]
-            YearOfBirth = ID[4:6]
-            Date_of_birth = YearOfBirth+MonthOfBirth+DayOfBirth
-            age = (now - int(YearOfBirth))%100
-            print(f"Age :{age}")
-            if 14 <= age < 23:
-                print("Trường Hợp 25t")
-                DayOfExpire  = DayOfBirth
-                MonthOfExpire = MonthOfBirth
-                YearOfExpire = str(25+int(YearOfBirth))
-            elif 23 <= age < 38:
-                print("Trường Hợp 40t")
-                DayOfExpire  = DayOfBirth
-                MonthOfExpire = MonthOfBirth
-                YearOfExpire = str(40+int(YearOfBirth))
-            elif 38 <= age < 58:
-                print("Trường Hợp 60t")
-                DayOfExpire  = DayOfBirth
-                MonthOfExpire = MonthOfBirth
-                YearOfExpire = str(60+int(YearOfBirth))
-            else:
-                print("Trường Hợp Vô Thời Hạn")
-                DayOfExpire = '31'
-                MonthOfExpire = '12'
-                YearOfExpire = "99"
-            Date_of_expire =YearOfExpire+MonthOfExpire+DayOfExpire
-            print(f"Date ={Date}")
-            print(f"Expire = {DayOfExpire}/{MonthOfExpire}/{str(YearOfExpire)}")
-            fullname,docID = readData.getImage(Document_number,Date_of_birth,Date_of_expire)
-            document_number.set(docID)
-            full_name.set(fullname)
-            date_of_birth.set(Date_of_birth)
-            date_of_expire.set(Date_of_expire)
-            image = Image.open("output.jpg")
-            image = image.resize((300, 400))  # Thay đổi kích thước ảnh
-            photo_image = ImageTk.PhotoImage(image)
-            image_label.config(image=photo_image)
-            image_label.image = photo_image  # Giữ tham chiếu đến ảnh để tránh mất ảnh
-            # popup.destroy()
-            break
-        elif isBackSide(isBackSide_image):
-            print("Mặt sau")
-            # cv2.imshow("Check Zone",isBackSide_image)
-            # Mã MRZ: Tọa độ: (x=6, y=188, w=487, h=107)
-            mrz_pos = cropped_id_card[188:188+107, 6:6+487]
-            gray_mrz = cv2.cvtColor(mrz_pos, cv2.COLOR_BGR2GRAY)
-            mrz = ocr_model.ocr(gray_mrz)
-            line = []
-            for item in mrz:  # Truy cập vào danh sách con đầu tiên
-                for sub_item in item:  # Truy cập vào từng phần tử trong danh sách con
-                    coordinates = sub_item[0]
-                    text, confidence = sub_item[1]
-                    print(f"MRZ: {text}")
-                    line.append(str(text).replace('<', ''))
-            print(f'Line 1: {line[0]}')
-            print(f'Line 2: {line[1]}')
-            print(f'Line 3: {line[2]}')
-            ID = str(line[0][15:27])
-            Document_number = ID[3:]
-            Date_of_birth = str(line[1][:6])
-            Date_of_expire = str(line[1][8:14])
-            fullname,docID = readData.getImage(Document_number,Date_of_birth,Date_of_expire)
-            document_number.set(docID)
-            full_name.set(fullname)
-            date_of_birth.set(Date_of_birth)
-            date_of_expire.set(Date_of_expire)
-            image = Image.open("output.jpg")
-            image = image.resize((300, 400))  # Thay đổi kích thước ảnh
-            photo_image = ImageTk.PhotoImage(image)
-            image_label.config(image=photo_image)
-            image_label.image = photo_image  # Giữ tham chiếu đến ảnh để tránh mất ảnh
-            # popup.destroy()
-            break
-        else:
-            cropped_id_card = cv2.rotate(cropped_id_card, cv2.ROTATE_180)
-            count += 1
-            if count >= 10:
-                break
+    # count = 0
+    # while True:
+    #     # Tọa độ: (x=40, y=17, w=67, h=68)
+    #     isFrontSide_image = cropped_id_card[0:0+90, 0:0+90]
+    #     # Tọa độ: (x=53, y=98, w=66, h=56)
+    #     isBackSide_image = cropped_id_card[98:98+56, 53:53+66]
+    #     if isFrontSide(isFrontSide_image):
+    #         print("Mặt Trước")
+    #         # cv2.imshow("Check Zone",isFrontSide_image)
+    #         # Mã Căn Cước Tọa độ: (x=198, y=123, w=179, h=41)
+    #         # Ngày Sinh: Tọa độ: (x=282, y=192, w=163, h=29)
+    #         # Ngày hết hạn: Tọa độ: (x=71, y=268, w=72, h=32)
+    #         x_ID, y_ID, w_ID, h_ID = [190, 115, 195, 39]
+    #         ID_pos = cropped_id_card[y_ID:y_ID+h_ID, x_ID:x_ID+w_ID]
+    #         x_date, y_date, w_date, h_date = [280, 180, 163, 29]
+    #         Date_pos = cropped_id_card[y_date:y_date +h_date, x_date:x_date+w_date]
+    #         ID = ocr_model.ocr(ID_pos)
+    #         Date = ocr_model.ocr(Date_pos)
+    #         try:
+    #             if Date[0][0][1][0] is not None:
+    #                 ID = str(ID[0][0][1][0])
+    #                 Date = str(Date[0][0][1][0]).replace("/", "")
+    #         except TypeError:
+    #             # popupError("Vui Lòng Để CCCD Đúng Vị Trí")
+    #             break
+    #         Document_number = ID[3:]
+    #         now = datetime.now().date().year
+    #         DayOfBirth = Date[:2]
+    #         MonthOfBirth = Date[2:4]
+    #         YearOfBirth = ID[4:6]
+    #         Date_of_birth = YearOfBirth+MonthOfBirth+DayOfBirth
+    #         age = (now - int(YearOfBirth))%100
+    #         print(f"Age :{age}")
+    #         if 14 <= age < 23:
+    #             print("Trường Hợp 25t")
+    #             DayOfExpire  = DayOfBirth
+    #             MonthOfExpire = MonthOfBirth
+    #             YearOfExpire = str(25+int(YearOfBirth))
+    #         elif 23 <= age < 38:
+    #             print("Trường Hợp 40t")
+    #             DayOfExpire  = DayOfBirth
+    #             MonthOfExpire = MonthOfBirth
+    #             YearOfExpire = str(40+int(YearOfBirth))
+    #         elif 38 <= age < 58:
+    #             print("Trường Hợp 60t")
+    #             DayOfExpire  = DayOfBirth
+    #             MonthOfExpire = MonthOfBirth
+    #             YearOfExpire = str(60+int(YearOfBirth))
+    #         else:
+    #             print("Trường Hợp Vô Thời Hạn")
+    #             DayOfExpire = '31'
+    #             MonthOfExpire = '12'
+    #             YearOfExpire = "99"
+    #         Date_of_expire =YearOfExpire+MonthOfExpire+DayOfExpire
+    #         print(f"Date ={Date}")
+    #         print(f"Expire = {DayOfExpire}/{MonthOfExpire}/{str(YearOfExpire)}")
+    #         fullname,docID = readData.getImage(Document_number,Date_of_birth,Date_of_expire)
+    #         document_number.set(docID)
+    #         full_name.set(fullname)
+    #         date_of_birth.set(Date_of_birth)
+    #         date_of_expire.set(Date_of_expire)
+    #         image = Image.open("output.jpg")
+    #         image = image.resize((300, 400))  # Thay đổi kích thước ảnh
+    #         photo_image = ImageTk.PhotoImage(image)
+    #         image_label.config(image=photo_image)
+    #         image_label.image = photo_image  # Giữ tham chiếu đến ảnh để tránh mất ảnh
+    #         # popup.destroy()
+    #         break
+    #     elif isBackSide(isBackSide_image):
+    #         print("Mặt sau")
+    #         # cv2.imshow("Check Zone",isBackSide_image)
+    #         # Mã MRZ: Tọa độ: (x=6, y=188, w=487, h=107)
+    #         mrz_pos = cropped_id_card[188:188+107, 6:6+487]
+    #         gray_mrz = cv2.cvtColor(mrz_pos, cv2.COLOR_BGR2GRAY)
+    #         mrz = ocr_model.ocr(gray_mrz)
+    #         line = []
+    #         for item in mrz:  # Truy cập vào danh sách con đầu tiên
+    #             for sub_item in item:  # Truy cập vào từng phần tử trong danh sách con
+    #                 coordinates = sub_item[0]
+    #                 text, confidence = sub_item[1]
+    #                 print(f"MRZ: {text}")
+    #                 line.append(str(text).replace('<', ''))
+    #         print(f'Line 1: {line[0]}')
+    #         print(f'Line 2: {line[1]}')
+    #         print(f'Line 3: {line[2]}')
+    #         ID = str(line[0][15:27])
+    #         Document_number = ID[3:]
+    #         Date_of_birth = str(line[1][:6])
+    #         Date_of_expire = str(line[1][8:14])
+    #         fullname,docID = readData.getImage(Document_number,Date_of_birth,Date_of_expire)
+    #         document_number.set(docID)
+    #         full_name.set(fullname)
+    #         date_of_birth.set(Date_of_birth)
+    #         date_of_expire.set(Date_of_expire)
+    #         image = Image.open("output.jpg")
+    #         image = image.resize((300, 400))  # Thay đổi kích thước ảnh
+    #         photo_image = ImageTk.PhotoImage(image)
+    #         image_label.config(image=photo_image)
+    #         image_label.image = photo_image  # Giữ tham chiếu đến ảnh để tránh mất ảnh
+    #         # popup.destroy()
+    #         break
+    #     else:
+    #         cropped_id_card = cv2.rotate(cropped_id_card, cv2.ROTATE_180)
+    #         count += 1
+    #         if count >= 10:
+    #             break
 
 def clear_info():
     """Xóa thông tin hiển thị."""
@@ -254,8 +256,8 @@ def main():
     Button(button_frame, text="Exit", command=exit_program, width=10).pack(side="left", padx=5)
 
     # Khởi động webcam
-    cap = cv2.VideoCapture(0)
-    cap2 = cv2.VideoCapture(1)
+    cap = cv2.VideoCapture(1)
+    cap2 = cv2.VideoCapture(0)
     # Dùng luồng riêng để cập nhật video từ webcam
     video_thread = threading.Thread(target=update_video_feed)
     video_thread.daemon = True

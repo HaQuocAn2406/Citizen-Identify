@@ -8,12 +8,12 @@ ocr_model = PaddleOCR(lang='en')
 def isFrontSide(image):
     hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     lower_red1 = np.array([0, 100, 100])
-    upper_red1 = np.array([10, 255, 255])
-    # lower_red2 = np.array([160, 70, 100])
-    # upper_red2 = np.array([180, 255, 255])
+    upper_red1 = np.array([5, 255, 255])
+    lower_red2 = np.array([160, 70, 100])
+    upper_red2 = np.array([180, 255, 255])
     mask1 = cv2.inRange(hsv_image, lower_red1, upper_red1)
-    # mask2 = cv2.inRange(hsv_image, lower_red2, upper_red2)
-    mask = mask1
+    mask2 = cv2.inRange(hsv_image, lower_red2, upper_red2)
+    mask = mask1|mask2
     if np.any(mask):
         return True
     else:
@@ -22,8 +22,8 @@ def isFrontSide(image):
 
 def isBackSide(image):
     hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-    lower_yellow = np.array([15, 100, 100])
-    upper_yellow = np.array([40, 255, 255])
+    lower_yellow = np.array([20, 100, 100])
+    upper_yellow = np.array([30, 255, 255])
     mask = cv2.inRange(hsv_image, lower_yellow, upper_yellow)
     if np.any(mask):
         return True
@@ -91,36 +91,44 @@ def readfront(ID_pos, Date_pos):
     return Document_number, Date_of_birth, Date_of_expire
 
 
-def readCard(image):
+def read(image):
     cropped_id_card = cv2.resize(image, (500, 300))
     # case cùng hướng
     isFrontSide_image = cropped_id_card[49:49+83, 34:34+132]
-    isBackSide_image = cropped_id_card[115:115+81, 59:59+106]
+    isBackSide_image = cropped_id_card[112:112+78, 57:57+103]
     if isFrontSide(isFrontSide_image):
         print("Mặt Trước")
+        cv2.imshow("FrontSide_image",isFrontSide_image)
         x_ID, y_ID, w_ID, h_ID = [215, 135, 178, 48]
-        x_date, y_date, w_date, h_date = [307, 193, 98, 27]
+        x_date, y_date, w_date, h_date = [305, 195, 101 ,31]
         ID_pos = cropped_id_card[y_ID:y_ID+h_ID, x_ID:x_ID+w_ID]
         Date_pos = cropped_id_card[y_date:y_date + h_date, x_date:x_date+w_date]
+        cv2.imshow("Date_pos 2",Date_pos)
         readfront(ID_pos, Date_pos)
     elif isBackSide(isBackSide_image):
         print("Mặt sau")
+        cv2.imshow("BackSide_image",isBackSide_image)
         mrz_pos = cropped_id_card[197:197+92, 35:35+463]
+        cv2.imshow("mrz_pos 2",mrz_pos)
         readback(mrz_pos)
     else:
         cropped_id_card = cv2.resize(image, (500, 300))
         cropped_id_card = cv2.rotate(cropped_id_card, cv2.ROTATE_180)
-        # case cùng hướng
+        # case ngược hướng
         isFrontSide_image = cropped_id_card[11:11+85, 2:2+111]
         isBackSide_image = cropped_id_card[78:78+79, 18:18+101]
         if isFrontSide(isFrontSide_image):
             print("Mặt Trước")
+            cv2.imshow("FrontSide_image",isFrontSide_image)
             x_ID, y_ID, w_ID, h_ID = [168, 102, 177, 38]
-            x_date, y_date, w_date, h_date = [258, 156, 101, 28]
+            x_date, y_date, w_date, h_date = [256, 152, 99 ,26]
             ID_pos = cropped_id_card[y_ID:y_ID+h_ID, x_ID:x_ID+w_ID]
             Date_pos = cropped_id_card[y_date:y_date + h_date, x_date:x_date+w_date]
+            cv2.imshow("Date_pos 1",Date_pos)
             readfront(ID_pos, Date_pos)
         elif isBackSide(isBackSide_image):
             print("Mặt sau")
-            mrz_pos = cropped_id_card[163:163+85, 6:6+447]
+            cv2.imshow("BackSide_image",isBackSide_image)
+            mrz_pos = cropped_id_card[163:163+82, 0:0+464]
+            cv2.imshow("mrz_pos 1",mrz_pos)
             readback(mrz_pos)
