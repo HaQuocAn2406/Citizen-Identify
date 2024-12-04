@@ -14,14 +14,19 @@ ocr_model = PaddleOCR(lang='en')
 root = Tk()
 
 root.title("Xác Thực CCCD")
-root.geometry("1200x750")
+root.geometry("1024x600")
+root.attributes('-topmost',True)
+
 video_width, video_height = 500, 300
+
 video_label = Label(root, width=video_width, height=video_height)
 video_label.place(x=0, y=0)
 crop_label = Label(root, width=video_width, height=video_height)
 crop_label.place(x=550, y=0)
+
 message_label =Label(root, text="", font=("Arial", 14), fg="red")
 message_label.pack()
+
 Face = Label(root, text="Mặt Căn Cước")
 Face.place(x=20, y=500)
 Facebox = Entry(state=DISABLED, fg='White')
@@ -45,7 +50,7 @@ Expirebox.place(x=100, y=650)
 key = 0
 
 cap = cv2.VideoCapture(0)
-cap2 = cv2.VideoCapture(2)
+cap2 = cv2.VideoCapture(1)
 copy_image = None
 
 

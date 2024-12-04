@@ -40,12 +40,12 @@ def isBackSide(image):
 def update_video_feed():
     """Cập nhật video từ webcam."""
     global video_label,face_label, cap,copy_image
-    while True:
-        ret, frame = cap.read()
-        ret, frame2 = cap2.read()
-        frame = cv2.resize(frame,(500,300))
-        frame2 = cv2.resize(frame2,(500,300))
-        if ret:
+    # while True:
+    ret, frame = cap.read()
+    ret, frame2 = cap2.read()
+    frame = cv2.resize(frame,(500,300))
+    frame2 = cv2.resize(frame2,(500,300))
+    if ret:
             # # Chuyển đổi frame từ BGR sang RGB
             # frame = cv2.resize(frame, (int(video_width), int(video_height)))
             # frame = cv2.resize(frame, (int(video_width), int(video_height)))
@@ -73,6 +73,7 @@ def update_video_feed():
             frame_image2 = ImageTk.PhotoImage(image=Image.fromarray(frame))
             face_label.configure(image=frame_image2)
             face_label.image = frame_image2
+    video_label.after(1, update_video_feed)
 
 def popupError(message):
     popupRoot = Tk()
@@ -135,64 +136,87 @@ def exit_program():
 
 def main():
     global cap,cap2, video_label,face_label, root, document_number, full_name, date_of_birth, date_of_expire,image_label
-
-    # Khởi tạo tkinter
-    root = Tk()
-    # root.geometry("1200x750")
-    root.title("Document Info Viewer")
-
-    # Biến thông tin
-    document_number = StringVar(value="")
-    full_name = StringVar(value="")
-    date_of_birth = StringVar(value="")
-    date_of_expire = StringVar(value="")
-
-    # left_frame = Frame(root, width=300, height=400)
-    # left_frame.grid(row=0, column=0, sticky="nw")
-
-    # Hiển thị thông tin bên dưới ảnh chân dung
-    Label(root, text="Document Number:", font=("Arial", 12, "bold"), anchor="sw").grid(row=1, column=0, sticky="sw", padx=5)
-    Label(root, textvariable=document_number, font=("Arial", 12), anchor="sw").grid(row=1, column=1, sticky="sw")
-
-    Label(root, text="Full Name:", font=("Arial", 12, "bold"), anchor="sw").grid(row=2, column=0, sticky="sw", padx=5)
-    Label(root, textvariable=full_name, font=("Arial", 12), anchor="sw").grid(row=2, column=1, sticky="sw")
-
-    Label(root, text="Date of Birth:", font=("Arial", 12, "bold"), anchor="sw").grid(row=3, column=0, sticky="sw", padx=5)
-    Label(root, textvariable=date_of_birth, font=("Arial", 12), anchor="sw").grid(row=3, column=1, sticky="sw")
-
-    Label(root, text="Date of Expire:", font=("Arial", 12, "bold"), anchor="sw").grid(row=4, column=0, sticky="sw", padx=5)
-    Label(root, textvariable=date_of_expire, font=("Arial", 12), anchor="sw").grid(row=4, column=1, sticky="sw")
-
-    # Tạo khung video bên phải
-    right_frame = Frame(root, width=1200,height=750)
-    right_frame.grid(row=0, column=0, sticky="ne")
-    left_frame =Frame(root,width=1200,height=750)
-    left_frame.grid(row=0, column=2, sticky="nw")
-    # Hiển thị video từ webcam
-    video_label = Label(right_frame)
-    video_label.pack()
-    # Tạo khung hiển thị ảnh và thông tin
-
-    face_label = Label(left_frame)
-    face_label.pack()
-    # Thêm các nút bên dưới
-    button_frame = Frame(root)
-    button_frame.grid(row=4, column=2, columnspan=2, pady=10,sticky='se')
-
-    Button(button_frame, text="Scan", command=scan_frame, width=10).pack(side="left", padx=5)
-    Button(button_frame, text="Clear", command=clear_info, width=10).pack(side="left", padx=5)
-    Button(button_frame, text="Exit", command=exit_program, width=10).pack(side="left", padx=5)
-
     # Khởi động webcam
     cap = cv2.VideoCapture(1)
     cap2 = cv2.VideoCapture(0)
-    # Dùng luồng riêng để cập nhật video từ webcam
-    video_thread = threading.Thread(target=update_video_feed)
-    video_thread.daemon = True
-    video_thread.start()
+    # Khởi tạo tkinter
+    root = Tk()
+    root.geometry("1024x600")
+    root.rowconfigure(0, weight=5)  # Dòng chứa hình ảnh chiếm 80% chiều cao
+    root.rowconfigure(1, weight=0)  # Dòng chứa thông tin chiếm 20% chiều cao
+    root.rowconfigure(2, weight=0)  # Dòng chứa nút không chiếm thêm không gian
+    root.columnconfigure(0, weight=0)
+    root.title("Document Info Viewer")
+    # Biến thông tin
+    document_number = StringVar(value="test value")
+    full_name = StringVar(value="test value")
+    date_of_birth = StringVar(value="test value")
+    date_of_expire = StringVar(value="test value")
+    nation = StringVar(value="test value")
 
+    # Khu vực hiển thị thông tin
+    frame_bottom = Frame(root)
+    frame_bottom.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
+
+    Document_Number_label = Label(frame_bottom, text="Document Number:",font=("Arial", 12, "bold"), anchor="sw")
+    Document_Number_label.grid(row=0, column=0, sticky="sw", pady=5)
+
+    Full_Name_label = Label(frame_bottom, text="Full Name:",font=("Arial", 12, "bold"), anchor="sw")
+    Full_Name_label.grid(row=1, column=0, sticky="sw", pady=5)
+
+    Nation_label = Label(frame_bottom, text="Nation:",font=("Arial", 12, "bold"), anchor="sw")
+    Nation_label.grid(row=2, column=0, sticky="sw", pady=5)
+
+    Date_Of_Birth_label = Label(frame_bottom, text="Date Of Birth:",font=("Arial", 12, "bold"), anchor="sw")
+    Date_Of_Birth_label.grid(row=3, column=0, sticky="sw", pady=5)
+
+    Date_Of_Expire_label = Label(frame_bottom, text="Date Of Expire:",font=("Arial", 12, "bold"), anchor="sw")
+    Date_Of_Expire_label.grid(row=4, column=0, sticky="sw", pady=5)
+
+    Document_Number_value = Label(frame_bottom, textvariable=document_number,font=("Arial", 12, "bold"), anchor="sw")
+    Document_Number_value.grid(row=0, column=1, sticky="sw", pady=5)
+
+    Full_Name_value = Label(frame_bottom, textvariable=full_name,font=("Arial", 12, "bold"), anchor="sw")
+    Full_Name_value.grid(row=1, column=1, sticky="sw", pady=5)
+
+    Nation_value = Label(frame_bottom, textvariable=nation, font=("Arial", 12, "bold"),anchor="sw")
+    Nation_value.grid(row=2, column=1, sticky="sw", pady=5)
+
+    Date_Of_Birth_value = Label(frame_bottom, textvariable=date_of_birth,font=("Arial", 12, "bold"), anchor="sw")
+    Date_Of_Birth_value.grid(row=3, column=1, sticky="sw", pady=5)
+
+    Date_Of_Expire_value = Label(frame_bottom, textvariable=date_of_expire, font=("Arial", 12, "bold"),anchor="sw")
+    Date_Of_Expire_value.grid(row=4, column=1, sticky="sw", pady=5)
+
+    # Khu vực hiển thị hình ảnh
+    frame_top = Frame(root)
+    frame_top.grid(row=0, column=0, sticky="nsew")
+
+    frame_top.columnconfigure((0, 1), weight=1)
+    frame_top.rowconfigure(0, weight=1)
+
+    video_label = Label(frame_top, text="ID Card", bg="black", fg="white")
+    video_label.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+
+    face_label = Label(frame_top, text="Facial", bg="black", fg="white")
+    face_label.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
+    # Thêm các nút bên dưới
+    frame_buttons = Frame(root)
+    frame_buttons.grid(row=4, column=0, sticky="e", padx=10, pady=10)
+    frame_bottom.columnconfigure((0, 1), weight=1)
+    
+    btn_exit = Button(frame_bottom, text="Exit", command=exit_program, width=15, height=2)
+    btn_exit.grid(row=4, column=2, padx=5,sticky="se")
+
+    btn_clear = Button(frame_bottom, text="Clear", command=clear_info,width=15, height=2)
+    btn_clear.grid(row=4, column=3, padx=5,sticky="se")
+
+    btn_scan = Button(frame_bottom, text="Scan", command=scan_frame,width=15, height=2)
+    btn_scan.grid(row=4, column=4, padx=5,sticky="se")
+    update_video_feed()
     root.mainloop()
 
 
 if __name__ == "__main__":
     main()
+    
