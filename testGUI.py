@@ -143,7 +143,7 @@ def main():
     cap2 = cv2.VideoCapture(1)
     # Khởi tạo tkinter
     root = Tk()
-    root.geometry("1024x768")
+    root.geometry("1024x600")
     root.rowconfigure(0, weight=5)  # Dòng chứa hình ảnh chiếm 80% chiều cao
     root.rowconfigure(1, weight=0)  # Dòng chứa thông tin chiếm 20% chiều cao
     root.rowconfigure(2, weight=0)  # Dòng chứa nút không chiếm thêm không gian
