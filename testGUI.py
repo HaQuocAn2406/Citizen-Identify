@@ -30,8 +30,8 @@ def isFrontSide(image):
 
 def isBackSide(image):
     hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-    lower_yellow = np.array([10, 80, 80])
-    upper_yellow = np.array([30, 255, 255])
+    lower_yellow = np.array([10, 100, 100])
+    upper_yellow = np.array([40, 255, 255])
     mask = cv2.inRange(hsv_image, lower_yellow, upper_yellow)
     if np.any(mask):
         return True
@@ -97,6 +97,8 @@ def scan_frame():
         cv2.imwrite("facial.jpg", frame)
         print("Frame đã được lưu thành 'facial.jpg'")
     # cropped_id_card = cv2.resize(copy_image, (500, 300))
+    cv2.imshow("Copy Image",copy_image)
+    read(copy_image)
     Document_number, Date_of_birth, Date_of_expire = read(copy_image)
     date_of_birth.set(Date_of_birth)
     date_of_expire.set(Date_of_expire)

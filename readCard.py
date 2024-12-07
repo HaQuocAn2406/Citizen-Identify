@@ -22,8 +22,8 @@ def isFrontSide(image):
 
 def isBackSide(image):
     hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-    lower_yellow = np.array([10, 80, 80])
-    upper_yellow = np.array([30, 255, 255])
+    lower_yellow = np.array([10, 50, 50])
+    upper_yellow = np.array([40, 255, 255])
     mask = cv2.inRange(hsv_image, lower_yellow, upper_yellow)
     if np.any(mask):
         return True
@@ -99,6 +99,8 @@ def read(image):
     isFrontSide_image = image[6:6+71, 24:24+90]
         # Tọa độ: (x=53, y=98, w=66, h=56)
     isBackSide_image = image[79:79+50, 44:44+60]
+    cv2.imshow("isFrontSide_image",isFrontSide_image)
+    cv2.imshow("isBackSide_image",isBackSide_image)
     if isFrontSide(isFrontSide_image):
         print("Mặt Trước")
         cv2.imshow("FrontSide_image",isFrontSide_image)
