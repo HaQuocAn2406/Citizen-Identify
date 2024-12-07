@@ -96,15 +96,15 @@ def read(image):
     # case cùng hướng  
     # isFrontSide_image = cropped_id_card[4:4+77, 14:14+100]
     # isBackSide_image = cropped_id_card[98:98+56, 53:53+66]
-    isFrontSide_image = image[0:0+83, 0:0+132]
+    isFrontSide_image = image[6:6+71, 24:24+90]
         # Tọa độ: (x=53, y=98, w=66, h=56)
-    isBackSide_image = image[98:98+56, 53:53+66]
+    isBackSide_image = image[79:79+50, 44:44+60]
     if isFrontSide(isFrontSide_image):
         print("Mặt Trước")
         cv2.imshow("FrontSide_image",isFrontSide_image)
-        x_ID, y_ID, w_ID, h_ID = [190, 92, 187, 35]
+        x_ID, y_ID, w_ID, h_ID = [179, 98, 185, 33]
         ID_pos = image[y_ID:y_ID+h_ID, x_ID:x_ID+w_ID]
-        x_date, y_date, w_date, h_date = [275, 151, 118 ,24]
+        x_date, y_date, w_date, h_date = [273, 155, 113 ,23]
         Date_pos = image[y_date:y_date +h_date, x_date:x_date+w_date]
         cv2.imshow("Date_pos 2",Date_pos)
         cv2.imshow("ID_pos 2",ID_pos)
@@ -114,7 +114,7 @@ def read(image):
         print("Mặt sau")
         cv2.imshow("BackSide_image",isBackSide_image)
         # Tọa độ: (x=3, y=215, w=497, h=79)
-        mrz_pos = image[188:188+107, 6:6+487]
+        mrz_pos = image[160:160+85, 7:7+471]
         cv2.imshow("mrz_pos 2",mrz_pos)
         Document_number, Date_of_birth, Date_of_expire = readback(mrz_pos)
         return Document_number, Date_of_birth, Date_of_expire
@@ -125,15 +125,15 @@ def read(image):
         # isFrontSide_image = cropped_id_card[28:28+56, 38:38+67]
         # isBackSide_image = cropped_id_card[95:95+45, 55:55+65]
 
-        isFrontSide_image = image[0:0+83, 0:0+132]
+        isFrontSide_image = image[10:10+57, 42:42+73]
         # Tọa độ: (x=53, y=98, w=66, h=56)
-        isBackSide_image = image[98:98+56, 53:53+66]
+        isBackSide_image = image[76:76+52, 98:98+65]
         if isFrontSide(isFrontSide_image):
             print("Mặt Trước")
             cv2.imshow("FrontSide_image",isFrontSide_image)
-            x_ID, y_ID, w_ID, h_ID = [190, 92, 187, 35]
+            x_ID, y_ID, w_ID, h_ID = [197, 97, 177, 33]
             ID_pos = image[y_ID:y_ID+h_ID, x_ID:x_ID+w_ID]
-            x_date, y_date, w_date, h_date = [275, 151, 118 ,24]
+            x_date, y_date, w_date, h_date = [289, 151, 98 ,25]
             Date_pos = image[y_date:y_date + h_date, x_date:x_date+w_date]
             cv2.imshow("Date_pos 1",Date_pos)
             Document_number, Date_of_birth, Date_of_expire = readfront(ID_pos, Date_pos)
@@ -141,7 +141,7 @@ def read(image):
         elif isBackSide(isBackSide_image):
             print("Mặt sau")
             cv2.imshow("BackSide_image",isBackSide_image)
-            mrz_pos = image[188:188+107, 6:6+487]
+            mrz_pos = image[157:157+84, 7:7+478]
             cv2.imshow("mrz_pos 1",mrz_pos)
             Document_number, Date_of_birth, Date_of_expire = readback(mrz_pos)
             return Document_number, Date_of_birth, Date_of_expire
