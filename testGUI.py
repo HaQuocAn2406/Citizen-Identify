@@ -50,9 +50,8 @@ def update_video_feed():
             # frame = cv2.resize(frame, (int(video_width), int(video_height)))
             # frame = cv2.resize(frame, (int(video_width), int(video_height)))
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            blurred = cv2.GaussianBlur(gray, (7, 7), 0)
-            # thresh1 = cv2.adaptiveThreshold(blurred,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY_INV,11,2)
-            _, thresh1 = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+            blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+            _, thresh1 = cv2.threshold(blurred, 0, 250, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
             contours, _ = cv2.findContours(thresh1, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             if not contours:
                 return update_video_feed()
@@ -73,6 +72,7 @@ def update_video_feed():
             frame_image2 = ImageTk.PhotoImage(image=Image.fromarray(frame))
             face_label.configure(image=frame_image2)
             face_label.image = frame_image2
+    cv2.imshow("Binary",thresh1)
     video_label.after(1, update_video_feed)
 
 def popupError(message):
@@ -137,11 +137,13 @@ def exit_program():
 def main():
     global cap,cap2, video_label,face_label, root, document_number, full_name, date_of_birth, date_of_expire,image_label
     # Khởi động webcam
-    cap = cv2.VideoCapture(1)
-    cap2 = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(0)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1024)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 768)
+    cap2 = cv2.VideoCapture(1)
     # Khởi tạo tkinter
     root = Tk()
-    root.geometry("1024x600")
+    root.geometry("1024x768")
     root.rowconfigure(0, weight=5)  # Dòng chứa hình ảnh chiếm 80% chiều cao
     root.rowconfigure(1, weight=0)  # Dòng chứa thông tin chiếm 20% chiều cao
     root.rowconfigure(2, weight=0)  # Dòng chứa nút không chiếm thêm không gian

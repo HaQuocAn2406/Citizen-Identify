@@ -5,6 +5,7 @@ from PIL import Image, ImageTk
 
 def detect_faces():
     ret, frame = cap.read()
+    frame = cv2.resize(frame,(500,300))
     if not ret:
         return
     
@@ -40,7 +41,8 @@ def detect_faces():
 
 # Initialize webcam
 cap = cv2.VideoCapture(0)
-
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 2592)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1944)
 # Create Tkinter window
 root = tk.Tk()
 root.title("Face Detection")
