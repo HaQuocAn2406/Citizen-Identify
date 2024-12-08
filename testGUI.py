@@ -13,42 +13,13 @@ import os
 import time
 ocr_model = PaddleOCR(lang='en')
 video_width, video_height = 500, 300
-def isFrontSide(image):
-    hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-    lower_red1 = np.array([0, 100, 100])
-    upper_red1 = np.array([10, 255, 255])
-    # lower_red2 = np.array([160, 70, 100])
-    # upper_red2 = np.array([180, 255, 255])
-    mask1 = cv2.inRange(hsv_image, lower_red1, upper_red1)
-    # mask2 = cv2.inRange(hsv_image, lower_red2, upper_red2)
-    mask = mask1
-    if np.any(mask):
-        return True
-    else:
-        return False
-
-
-def isBackSide(image):
-    hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-    lower_yellow = np.array([10, 100, 100])
-    upper_yellow = np.array([40, 255, 255])
-    mask = cv2.inRange(hsv_image, lower_yellow, upper_yellow)
-    if np.any(mask):
-        return True
-    else:
-        return False
 def update_video_feed():
-    """Cập nhật video từ webcam."""
     global video_label,face_label, cap,copy_image
-    # while True:
     ret, frame = cap.read()
     ret, frame2 = cap2.read()
     frame = cv2.resize(frame,(500,300))
     frame2 = cv2.resize(frame2,(500,300))
     if ret:
-            # # Chuyển đổi frame từ BGR sang RGB
-            # frame = cv2.resize(frame, (int(video_width), int(video_height)))
-            # frame = cv2.resize(frame, (int(video_width), int(video_height)))
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             blurred = cv2.GaussianBlur(gray, (5, 5), 0)
             _, thresh1 = cv2.threshold(blurred, 0, 250, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
@@ -61,7 +32,6 @@ def update_video_feed():
             x, y, w, h = cv2.boundingRect(biggest)
             cv2.drawContours(frame,[box],-1,(0,0,255),2)
             cv2.rectangle(frame, (x+5, y+5), (x + w-5, y + h-5), (255, 0, 0), 2)
-            # copy_image = frame2
             copy_image = frame[y+5:y+h-5, x+5:x+w-5]
             frame2 = cv2.cvtColor(frame2, cv2.COLOR_BGR2RGB)
             frame_image = ImageTk.PhotoImage(image=Image.fromarray(frame2))
@@ -72,22 +42,36 @@ def update_video_feed():
             frame_image2 = ImageTk.PhotoImage(image=Image.fromarray(frame))
             face_label.configure(image=frame_image2)
             face_label.image = frame_image2
-    cv2.imshow("Binary",thresh1)
+    # cv2.imshow("Binary",thresh1)
     video_label.after(1, update_video_feed)
 
 def popupError(message):
-    popupRoot = Tk()
-    popupRoot.title("Lỗi")
-
-    def exit():
-        popupRoot.destroy()
-    my_font = Font(family="Times New Roman", size=20, weight="bold")
-    message = Label(popupRoot, text=message, font=my_font)
-    popupButton = Button(popupRoot, text="Ok", bg="Gray", command=exit)
-    message.pack()
-    popupButton.pack()
-    popupRoot.geometry('400x50+700+500')
-    popupRoot.mainloop()
+    popup = Toplevel(root)
+    popup.title("Thông Báo")
+    popup.geometry("200x200")  # Set the popup window size
+    
+    # Get the dimensions and position of the main window
+    root_x = root.winfo_x()
+    root_y = root.winfo_y()
+    root_width = root.winfo_width()
+    root_height = root.winfo_height()
+    
+    # Get the popup window dimensions
+    popup_width = 300
+    popup_height = 200
+    
+    # Calculate the x and y position to center the popup relative to the main window
+    x = root_x + (root_width // 2) - (popup_width // 2)
+    y = root_y + (root_height // 2) - (popup_height // 2)
+    
+    # Set the popup window's geometry
+    popup.geometry(f"{popup_width}x{popup_height}+{x}+{y}")
+    
+    # Add a label to the popup
+    Label(popup, text=message, font=("Arial", 14)).pack(pady=50)
+    
+    # Add a close button
+    Button(popup, text="Close", command=popup.destroy).pack()
 def scan_frame():
     global copy_image,document_number, full_name, date_of_birth, date_of_expire
     root.after(500, clear_info())
@@ -96,8 +80,6 @@ def scan_frame():
         frame = cv2.cvtColor(frame,cv2.COLOR_BGR2RGB)
         cv2.imwrite("facial.jpg", frame)
         print("Frame đã được lưu thành 'facial.jpg'")
-    # cropped_id_card = cv2.resize(copy_image, (500, 300))
-    cv2.imshow("Copy Image",copy_image)
     read(copy_image)
     Document_number, Date_of_birth, Date_of_expire = read(copy_image)
     date_of_birth.set(Date_of_birth)
@@ -141,7 +123,7 @@ def main():
     # Khởi động webcam
     cap = cv2.VideoCapture(0)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1024)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 768)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 748)
     cap2 = cv2.VideoCapture(1)
     # Khởi tạo tkinter
     root = Tk()

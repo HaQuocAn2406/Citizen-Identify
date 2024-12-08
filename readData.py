@@ -69,7 +69,7 @@ def send_apdu(command):
         print("SW2:", hex(sw2))
     except Exception as e:
         print("Error:", e)
-        sys.exit(1)
+        # sys.exit(1)
     return res
 
 def generate_random_bytes(byte_length):
