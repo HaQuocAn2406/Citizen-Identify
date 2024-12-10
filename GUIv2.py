@@ -17,6 +17,8 @@ _location = os.path.dirname(__file__)
 import threading
 import GUIv2_support
 import time
+import readData
+from readCard import*
 _bgcolor = '#d9d9d9'
 _fgcolor = '#000000'
 _tabfg1 = 'black' 
@@ -94,8 +96,9 @@ class Toplevel1:
         self.Video_Webcam.configure(foreground="black")
         self.Video_Webcam.configure(highlightbackground="#d9d9d9")
         self.Video_Webcam.configure(highlightcolor="#000000")
-        self.Video_Webcam.configure(text='''Video_Stream''')
-        self.cap = cv2.VideoCapture(0)
+        # self.Video_Webcam.configure(text="")
+        self.cap = cv2.VideoCapture(1)
+        self.cap2 = cv2.VideoCapture(0)
         self.update_webcam()
 
         self.Logo = tk.Label(self.top)
@@ -170,7 +173,7 @@ class Toplevel1:
         self.FacialLabel.configure(foreground="black")
         self.FacialLabel.configure(highlightbackground="#d9d9d9")
         self.FacialLabel.configure(highlightcolor="#000000")
-        self.facial_image = cv2.resize(cv2.imread("output.jpg"),(150,200))
+        self.facial_image = cv2.resize(cv2.imread("TDTU_resize-removebg-preview.png"),(150,200))
         self.facial_image_RGB = cv2.cvtColor(self.facial_image,cv2.COLOR_BGR2RGB)
         self.facial = ImageTk.PhotoImage(image=Image.fromarray(self.facial_image_RGB))
         self.FacialLabel.configure(image= self.facial)
@@ -324,11 +327,27 @@ class Toplevel1:
         self.date_of_expire.set('''DoE''')
 
     def update_webcam(self):
+        global copy_image
         ret,frame = self.cap.read()
+        ret, frame2 = self.cap2.read()
+        frame = cv2.resize(frame,(500,300))
+        frame2 = cv2.resize(frame2,(500,300))
         if ret:
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+            _, thresh1 = cv2.threshold(blurred, 0, 250, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+            contours, _ = cv2.findContours(thresh1, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            if not contours:
+                return self.update_webcam()
+            biggest = max(contours, key=cv2.contourArea)
+            rect = cv2.minAreaRect(biggest)
+            box = cv2.boxPoints(rect).astype('int')
+            x, y, w, h = cv2.boundingRect(biggest)
+            cv2.drawContours(frame,[box],-1,(0,0,255),2)
+            cv2.rectangle(frame, (x+5, y+5), (x + w-5, y + h-5), (255, 0, 0), 2)
+            copy_image = frame[y+5:y+h-5, x+5:x+w-5]
             frame = cv2.cvtColor(frame,cv2.COLOR_BGR2RGB)
             self.frame_image = ImageTk.PhotoImage(image=Image.fromarray(frame))
-            # seft.photo = ImageTk.PhotoImage(image=seft.frame_image)
             self.Video_Webcam.configure(image= self.frame_image)
             self.WebcamFrame.after(1,self.update_webcam)
     def scan_frame(self):
@@ -337,7 +356,38 @@ class Toplevel1:
         # time.sleep(3)
         # GUIv2_support.popup.destroy()
     def process(self):
-        time.sleep(5)
+        global copy_image
+        self.clear_info()
+        ret, frame2 = self.cap2.read()
+        if ret:
+            frame2 = cv2.cvtColor(frame2,cv2.COLOR_BGR2RGB)
+            cv2.imwrite("facial.jpg", frame2)
+            print("Frame đã được lưu thành 'facial.jpg'")
+        try:
+            Document_number, Date_of_birth, Date_of_expire = read(copy_image)
+        except IndexError:
+            GUIv2_support.popup.destroy()
+            GUIv2_support.popupError("Đã Xảy Ra Lỗi")
+            time.sleep(2)
+            GUIv2_support.popup.destroy()
+        self.date_of_birth.set(Date_of_birth)
+        self.date_of_expire.set(Date_of_expire)
+        try:
+            fullname,docID = readData.getImage(Document_number,Date_of_birth,Date_of_expire)
+        except Exception:
+            GUIv2_support.popup.destroy()
+            GUIv2_support.popupError("Đã Xảy Ra Lỗi")
+            time.sleep(2)
+            GUIv2_support.popup.destroy()
+        self.documentNum.set(docID)
+        self.full_name.set(fullname)
+        image_from_card = cv2.imread('output.jpg')
+        image_from_card = cv2.cvtColor(image_from_card, cv2.COLOR_BGR2RGB)
+        image_from_card = ImageTk.PhotoImage(image=Image.fromarray(image_from_card))
+        self.FacialLabel.configure(image=image_from_card)
+        # self.FacialLabel.image = image_from_card
+        os.remove("output.jpg")
+        os.remove("facial.jpg")
         GUIv2_support.popup.destroy()
     def clear_info(self):
         self.FacialLabel.configure(image="")

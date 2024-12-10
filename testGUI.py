@@ -69,7 +69,6 @@ def popupError(message):
     # Add a close button
     # Button(popup, text="Close", command=popup.destroy).pack()
 def scan_frame():
-    global copy_image, document_number, full_name, date_of_birth, date_of_expire
     threading.Thread(target=process_frame).start()  # Chuyển xử lý sang luồng khác
     popupError("Đang Xử Lý...")  # Hiển thị popup trong luồng chính
 def process_frame():
