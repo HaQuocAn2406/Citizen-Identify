@@ -37,15 +37,11 @@ def update_video_feed():
             frame_image = ImageTk.PhotoImage(image=Image.fromarray(frame2))
             video_label.configure(image=frame_image)
             video_label.image = frame_image
-
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            frame_image2 = ImageTk.PhotoImage(image=Image.fromarray(frame))
-            face_label.configure(image=frame_image2)
-            face_label.image = frame_image2
-    # cv2.imshow("Binary",thresh1)
+    # cv2.imshow("Binary",thresh1)  
     video_label.after(1, update_video_feed)
 
 def popupError(message):
+    global popup
     popup = Toplevel(root)
     popup.title("Thông Báo")
     popup.geometry("200x200")  # Set the popup window size
@@ -71,41 +67,54 @@ def popupError(message):
     Label(popup, text=message, font=("Arial", 14)).pack(pady=50)
     
     # Add a close button
-    Button(popup, text="Close", command=popup.destroy).pack()
+    # Button(popup, text="Close", command=popup.destroy).pack()
 def scan_frame():
+    global copy_image, document_number, full_name, date_of_birth, date_of_expire
+    threading.Thread(target=process_frame).start()  # Chuyển xử lý sang luồng khác
+    popupError("Đang Xử Lý...")  # Hiển thị popup trong luồng chính
+def process_frame():
     global copy_image,document_number, full_name, date_of_birth, date_of_expire
-    root.after(500, clear_info())
+    clear_info()
     ret, frame = cap2.read()
     if ret:
         frame = cv2.cvtColor(frame,cv2.COLOR_BGR2RGB)
         cv2.imwrite("facial.jpg", frame)
         print("Frame đã được lưu thành 'facial.jpg'")
-    read(copy_image)
-    Document_number, Date_of_birth, Date_of_expire = read(copy_image)
+    try:
+        Document_number, Date_of_birth, Date_of_expire = read(copy_image)
+    except IndexError:
+        popupError("Đã xảy ra Lỗi")
+        time.sleep(2)
+        popup.destroy()
     date_of_birth.set(Date_of_birth)
     date_of_expire.set(Date_of_expire)
     fullname,docID = readData.getImage(Document_number,Date_of_birth,Date_of_expire)
     document_number.set(docID)
     full_name.set(fullname)
-    facial_image = cv2.imread('output.jpg')
-    facial_image = cv2.cvtColor(facial_image,cv2.COLOR_BGR2RGB)
-    img_encoding = face_recognition.face_encodings(facial_image)[0]
+    image_from_card = cv2.imread('output.jpg')
+    # image_from_card = cv2.cvtColor(image_from_card,cv2.COLOR_BGR2RGB)
+    # img_encoding = face_recognition.face_encodings(image_from_card)[0]
 
-    real_image = cv2.imread('facial.jpg')
-    real_image = cv2.cvtColor(real_image,cv2.COLOR_BGR2RGB)
-    img_encoding2 = face_recognition.face_encodings(real_image)[0]
-    rs = face_recognition.compare_faces([img_encoding],img_encoding2)
-    print(rs)
-    if rs[0] == True:
-        popupError("Xác Thực Thành Công")
-    else:
-        popupError("Xác Thực Thất Bại")
+    # real_image = cv2.imread('facial.jpg')
+    # real_image = cv2.cvtColor(real_image,cv2.COLOR_BGR2RGB)
+    # img_encoding2 = face_recognition.face_encodings(real_image)[0]
+    # rs = face_recognition.compare_faces([img_encoding],img_encoding2)
+    # print(rs)
+    # if rs[0] == True:
+    #     popupError("Xác Thực Thành Công")
+    # else:
+    #     popupError("Xác Thực Thất Bại")
+    image_from_card = cv2.cvtColor(image_from_card, cv2.COLOR_BGR2RGB)
+    image_from_card = ImageTk.PhotoImage(image=Image.fromarray(image_from_card))
+    face_label.configure(image=image_from_card)
+    face_label.image = image_from_card
     os.remove("output.jpg")
     os.remove("facial.jpg")
+    popup.destroy()
 
 def clear_info():
     """Xóa thông tin hiển thị."""
-    # image_label.config(image='')
+    face_label.config(image='')
     document_number.set("")
     full_name.set("")
     date_of_birth.set("")
@@ -182,10 +191,11 @@ def main():
     frame_top.rowconfigure(0, weight=1)
 
     video_label = Label(frame_top, text="ID Card", bg="black", fg="white")
-    video_label.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+    video_label.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
 
-    face_label = Label(frame_top, text="Facial", bg="black", fg="white")
-    face_label.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
+    face_label = Label(frame_top, fg="white")
+    face_label.grid(row=1, column=1, sticky="nsew")
+    face_label.configure(image="")
     # Thêm các nút bên dưới
     frame_buttons = Frame(root)
     frame_buttons.grid(row=4, column=0, sticky="e", padx=10, pady=10)
@@ -199,9 +209,9 @@ def main():
 
     btn_scan = Button(frame_bottom, text="Scan", command=scan_frame,width=15, height=2)
     btn_scan.grid(row=4, column=4, padx=5,sticky="se")
+
     update_video_feed()
     root.mainloop()
-
 
 if __name__ == "__main__":
     main()
