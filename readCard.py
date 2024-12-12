@@ -67,22 +67,22 @@ def readfront(ID_pos, Date_pos):
     age = (now - int(YearOfBirth)) % 100
     print(f"Age :{age}")
     if 14 <= age < 23:
-        # print("TrÃÂ°Ã¡Â»Âng HÃ¡Â»Â£p 25t")
+        # print("TrÃÂÃÂ°ÃÂ¡ÃÂ»ÃÂng HÃÂ¡ÃÂ»ÃÂ£p 25t")
         DayOfExpire = DayOfBirth
         MonthOfExpire = MonthOfBirth
         YearOfExpire = str(25+int(YearOfBirth))
     elif 23 <= age < 38:
-        # print("TrÃÂ°Ã¡Â»Âng HÃ¡Â»Â£p 40t")
+        # print("TrÃÂÃÂ°ÃÂ¡ÃÂ»ÃÂng HÃÂ¡ÃÂ»ÃÂ£p 40t")
         DayOfExpire = DayOfBirth
         MonthOfExpire = MonthOfBirth
         YearOfExpire = str(40+int(YearOfBirth))
     elif 38 <= age < 58:
-        # print("TrÃÂ°Ã¡Â»Âng HÃ¡Â»Â£p 60t")
+        # print("TrÃÂÃÂ°ÃÂ¡ÃÂ»ÃÂng HÃÂ¡ÃÂ»ÃÂ£p 60t")
         DayOfExpire = DayOfBirth
         MonthOfExpire = MonthOfBirth
         YearOfExpire = str(60+int(YearOfBirth))
     else:
-        # print("TrÃÂ°Ã¡Â»Âng HÃ¡Â»Â£p VÃÂ´ ThÃ¡Â»Âi HÃ¡ÂºÂ¡n")
+        # print("TrÃÂÃÂ°ÃÂ¡ÃÂ»ÃÂng HÃÂ¡ÃÂ»ÃÂ£p VÃÂÃÂ´ ThÃÂ¡ÃÂ»ÃÂi HÃÂ¡ÃÂºÃÂ¡n")
         DayOfExpire = '31'
         MonthOfExpire = '12'
         YearOfExpire = "99"
@@ -96,7 +96,7 @@ def read(image):
     isFrontSide_image = image[6:6+42, 38:38+47]
     isBackSide_image = image[65:65+36, 40:40+48]
     if isFrontSide(isFrontSide_image):
-        print("Máº·t TrÆ°á»c")
+        print("Mặt Trước")
         x_ID, y_ID, w_ID, h_ID = [150, 70, 185, 30]
         ID_pos = image[y_ID:y_ID+h_ID, x_ID:x_ID+w_ID]
         x_date, y_date, w_date, h_date = [222, 120, 113 ,22]
@@ -105,7 +105,7 @@ def read(image):
         cv2.rectangle(image,(x_ID,y_ID),(x_ID+w_ID,y_ID+h_ID),(255,0,0),2)
         cv2.rectangle(image,(x_date,y_date),(x_date+w_date,y_date+h_date),(255,0,0),2)  
     elif isBackSide(isBackSide_image):
-        print("Máº·t sau")
+        print("Mặt Sau")
         mrz_pos = image[125:125+65, 0:0+387]
         Document_number, Date_of_birth, Date_of_expire = readback(mrz_pos)
         cv2.rectangle(image,(0,125),(9+387,125+65),(255,0,0),2)

@@ -11,6 +11,7 @@ from readCard import *
 import face_recognition
 import os
 import time
+from picamera2 import Picamera2
 ocr_model = PaddleOCR(lang='en')
 video_width, video_height = 500, 300
 
@@ -62,19 +63,22 @@ def popupError(message):
 def scan_frame():
     clear_info()
     frame2 = picam2.capture_array()
-    if ret:
-        frame2 = cv2.cvtColor(frame2, cv2.COLOR_BGR2RGB)
-        cv2.imwrite("facial.jpg", frame2)
-        base_image=cv2.imread("facial.jpg")
-        base_image= cv2.cvtColor(base_image,cv2.COLOR_BGR2RGB)
-        face_locations = face_recognition.face_locations(base_image)
-        if len(face_locations) == 0 or len(face_locations) > 1:
-            popupError("Cant Detect Face")
-            return
-        else:
-            print("Frame đã được lưu thành 'facial.jpg'")
-            popupError("Processing")
-            process_frame()
+    frame2 = cv2.cvtColor(frame2, cv2.COLOR_BGR2RGB)
+    cv2.imwrite("facial.jpg", frame2)
+    base_image=cv2.imread("facial.jpg")
+    base_image= cv2.cvtColor(base_image,cv2.COLOR_BGR2RGB)
+    face_locations = face_recognition.face_locations(base_image)
+    if len(face_locations) == 0 or len(face_locations) > 1:
+        popup.destroy()
+        popupError("Cant Detect Face")
+        return
+    else:
+        print("Frame ÄÃ£ ÄÆ°á»£c lÆ°u thÃ nh 'facial.jpg'")
+        popupError("Processing")
+        thread = threading.Thread(target=process_frame)
+        thread.daemon = True
+        thread.start()
+        
 def compare_face():
     image_from_card = cv2.imread('output.jpg')
     image_from_card = cv2.cvtColor(image_from_card, cv2.COLOR_BGR2RGB)
@@ -93,19 +97,26 @@ def compare_face():
     os.remove("facial.jpg")
 def process_frame():
     global copy_image, document_number, full_name, date_of_birth, date_of_expire
-    # Hiển thị ảnh
-    plt.imshow(copy_image)
-    plt.axis('on')
-    plt.show()
+    # Hiá»n thá» áº£nh
+#    plt.imshow(copy_image)
+ #   plt.axis('on')
+  #  plt.show()
     try:
         Document_number, Date_of_birth, Date_of_expire = read(copy_image)
-    except IndexError:
-        popupError("Error")
+    except Exception:
+        popup.destroy()
+        popupError("Error When Read OCR")
         time.sleep(2)
         popup.destroy()
     date_of_birth.set(Date_of_birth)
     date_of_expire.set(Date_of_expire)
-    fullname, docID,nguyen_quan = readData.getImage(Document_number, Date_of_birth, Date_of_expire)
+    try:
+        fullname, docID,nguyen_quan = readData.getImage(Document_number, Date_of_birth, Date_of_expire)
+    except Exception:
+        popup.destroy()
+        popupError("Authentication Error")
+        time.sleep(2)
+        popup.destroy()
     nation.set(nguyen_quan)
     document_number.set(docID)
     full_name.set(fullname)
@@ -135,16 +146,16 @@ def exit_program():
 
 def main():
     global cap, picam2, FacialLabel, nation, root, document_number, full_name, date_of_birth, date_of_expire, Video_Webcam, WebcamFrame
-    # Khởi tạo tkinter
+    # Khá»i táº¡o tkinter
 
     root = Tk()
     root.geometry("1024x600")
-    root.rowconfigure(0, weight=5)  # Dòng chứa hình ảnh chiếm 80% chiều cao
-    root.rowconfigure(1, weight=0)  # Dòng chứa thông tin chiếm 20% chiều cao
-    root.rowconfigure(2, weight=0)  # Dòng chứa nút không chiếm thêm không gian
+    root.rowconfigure(0, weight=5)  # DÃ²ng chá»©a hÃ¬nh áº£nh chiáº¿m 80% chiá»u cao
+    root.rowconfigure(1, weight=0)  # DÃ²ng chá»©a thÃ´ng tin chiáº¿m 20% chiá»u cao
+    root.rowconfigure(2, weight=0)  # DÃ²ng chá»©a nÃºt khÃ´ng chiáº¿m thÃªm khÃ´ng gian
     root.columnconfigure(0, weight=0)
     root.title("Document Info Viewer")
-    # Biến thông tin
+    # Biáº¿n thÃ´ng tin
     root.geometry("1024x748")
     #  root.attributes("-fullscreen", True)
     #  root.minsize(120, 1)
