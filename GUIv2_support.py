@@ -11,6 +11,8 @@ import tkinter as tk
 import tkinter.ttk as ttk
 from tkinter.constants import *
 import GUIv2
+import cv2
+import face_recognition
 _debug = True # False to eliminate debug printing from callback functions.
 
 def main(*args):
@@ -39,7 +41,26 @@ def popupError(message):
         y = root_y+(root_h//2)-(popup_h//2)
         popup.geometry(f"{popup_w}x{popup_h}+{x}+{y}")
         tk.Label(popup,text=message,font=("Arial",14)).pack(pady=50)
+def face_compare(self):
+        image_from_card = cv2.imread('output.jpg')
+        image_from_card = cv2.cvtColor(image_from_card,cv2.COLOR_BGR2RGB)
+        img_encoding = face_recognition.face_encodings(image_from_card)[0]
 
+        real_image = cv2.imread('facial.jpg')
+        real_image = cv2.cvtColor(real_image,cv2.COLOR_BGR2RGB)
+        img_encoding2 = face_recognition.face_encodings(real_image)[0]
+        rs = face_recognition.compare_faces([img_encoding],img_encoding2)
+        img_encoding2 = face_recognition.face_encodings(real_image)[0]
+        rs = face_recognition.compare_faces([img_encoding],img_encoding2)
+        print(rs)
+        if rs[0] == True:
+                popupError("XÃ¡c Thá»±c ThÃ nh CÃ´ng")
+        else:
+                popupError("XÃ¡c Thá»±c Tháº¥t Báº¡i")
+        
+        # os.remove("output.jpg")
+        # os.remove("facial.jpg")
+        popup.destroy()
 if __name__ == '__main__':
     global popup
     GUIv2.start_up()

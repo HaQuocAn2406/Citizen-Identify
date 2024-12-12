@@ -36,8 +36,8 @@ def readback(mrz_pos):
     gray_mrz = cv2.cvtColor(mrz_pos, cv2.COLOR_BGR2GRAY)
     mrz = ocr_model.ocr(gray_mrz)
     line = []
-    for item in mrz:  # Truy cáº­p vÃ o danh sÃ¡ch con Äáº§u tiÃªn
-        for sub_item in item:  # Truy cáº­p vÃ o tá»«ng pháº§n tá»­ trong danh sÃ¡ch con
+    for item in mrz: 
+        for sub_item in item: 
             coordinates = sub_item[0]
             text, confidence = sub_item[1]
             print(f"MRZ: {text}")
@@ -67,22 +67,22 @@ def readfront(ID_pos, Date_pos):
     age = (now - int(YearOfBirth)) % 100
     print(f"Age :{age}")
     if 14 <= age < 23:
-        # print("TrÆ°á»ng Há»£p 25t")
+        # print("TrÃÂ°Ã¡Â»Âng HÃ¡Â»Â£p 25t")
         DayOfExpire = DayOfBirth
         MonthOfExpire = MonthOfBirth
         YearOfExpire = str(25+int(YearOfBirth))
     elif 23 <= age < 38:
-        # print("TrÆ°á»ng Há»£p 40t")
+        # print("TrÃÂ°Ã¡Â»Âng HÃ¡Â»Â£p 40t")
         DayOfExpire = DayOfBirth
         MonthOfExpire = MonthOfBirth
         YearOfExpire = str(40+int(YearOfBirth))
     elif 38 <= age < 58:
-        # print("TrÆ°á»ng Há»£p 60t")
+        # print("TrÃÂ°Ã¡Â»Âng HÃ¡Â»Â£p 60t")
         DayOfExpire = DayOfBirth
         MonthOfExpire = MonthOfBirth
         YearOfExpire = str(60+int(YearOfBirth))
     else:
-        # print("TrÆ°á»ng Há»£p VÃ´ Thá»i Háº¡n")
+        # print("TrÃÂ°Ã¡Â»Âng HÃ¡Â»Â£p VÃÂ´ ThÃ¡Â»Âi HÃ¡ÂºÂ¡n")
         DayOfExpire = '31'
         MonthOfExpire = '12'
         YearOfExpire = "99"
@@ -96,21 +96,25 @@ def read(image):
     isFrontSide_image = image[6:6+42, 38:38+47]
     isBackSide_image = image[65:65+36, 40:40+48]
     if isFrontSide(isFrontSide_image):
-        print("Mặt Trước")
+        print("Máº·t TrÆ°á»c")
         x_ID, y_ID, w_ID, h_ID = [150, 70, 185, 30]
         ID_pos = image[y_ID:y_ID+h_ID, x_ID:x_ID+w_ID]
-        x_date, y_date, w_date, h_date = [222, 114, 113 ,23]
+        x_date, y_date, w_date, h_date = [222, 120, 113 ,22]
         Date_pos = image[y_date:y_date +h_date, x_date:x_date+w_date]
         Document_number, Date_of_birth, Date_of_expire = readfront(ID_pos, Date_pos)
         cv2.rectangle(image,(x_ID,y_ID),(x_ID+w_ID,y_ID+h_ID),(255,0,0),2)
         cv2.rectangle(image,(x_date,y_date),(x_date+w_date,y_date+h_date),(255,0,0),2)  
     elif isBackSide(isBackSide_image):
-        print("Mặt sau")
+        print("Máº·t sau")
         mrz_pos = image[125:125+65, 0:0+387]
         Document_number, Date_of_birth, Date_of_expire = readback(mrz_pos)
         cv2.rectangle(image,(0,125),(9+387,125+65),(255,0,0),2)
         cv2.rectangle(image,(40,65),(40+48,65+36),(255,0,0),2)
     else:
         image = cv2.rotate(image, cv2.ROTATE_180)
-        return read(image) 
+        return read(image)
+    #image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    #plt.imshow(image_rgb)
+    #plt.axis('on')
+    #plt.show()
     return Document_number, Date_of_birth, Date_of_expire

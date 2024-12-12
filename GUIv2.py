@@ -16,9 +16,13 @@ import cv2
 _location = os.path.dirname(__file__)
 import threading
 import GUIv2_support
+# from picamera2 import Picamera2
 import time
 import readData
 from readCard import*
+import face_recognition
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
 _bgcolor = '#d9d9d9'
 _fgcolor = '#000000'
 _tabfg1 = 'black' 
@@ -27,21 +31,33 @@ _bgmode = 'light'
 _tabbg1 = '#d9d9d9' 
 _tabbg2 = 'gray40' 
 
+
 class Toplevel1:
     def __init__(self, top=None):
+        #self.picam2 = Picamera2()
+
+        # Configure the camera
+        #preview_config = self.picam2.create_preview_configuration(main={"format": "RGB888", "size": (640, 480)})
+        #self.picam2.configure(preview_config)
+
+        # Copy the configuration
+        #self.config = self.picam2.camera_config.copy()
+
+        # Start the camera
+        #self.picam2.start()
         '''This class configures and populates the toplevel window.
            top is the toplevel containing window.'''
-        top.geometry("1024x600+303+118")
-        top.minsize(120, 1)
-        top.maxsize(1540, 845)
-        top.resizable(1,  1)
+        top.geometry("1024x748")
+        #top.attributes("-fullscreen", True)
+        #top.minsize(120, 1)
+        #top.maxsize(1540, 845)
+        #top.resizable(1,  1)
         top.title("Toplevel 0")
         top.configure(background="#d9d9d9")
         top.configure(highlightbackground="#d9d9d9")
         top.configure(highlightcolor="#000000")
 
         self.top = top
-        self.documentNum = tk.StringVar()
         self.document_number = tk.StringVar()
         self.full_name = tk.StringVar()
         self.nation = tk.StringVar()
@@ -60,7 +76,7 @@ class Toplevel1:
         self.Title.configure(foreground="black")
         self.Title.configure(highlightbackground="#d9d9d9")
         self.Title.configure(highlightcolor="#000000")
-        self.Title.configure(text='''ĐỒ ÁN TỔNG HỢP''')
+        self.Title.configure(text='''Äá» ÃN Tá»NG Há»¢P''')
 
         self.SubTitle = tk.Label(self.top)
         self.SubTitle.place(relx=0.225, rely=0.1, height=21, width=694)
@@ -74,7 +90,7 @@ class Toplevel1:
         self.SubTitle.configure(foreground="black")
         self.SubTitle.configure(highlightbackground="#d9d9d9")
         self.SubTitle.configure(highlightcolor="#000000")
-        self.SubTitle.configure(text='''Thiết Kế Hệ Thống Xác Thực Khuôn Mặt Sử Dụng Xử Lý Ảnh Và CCCD Gắn Chip''')
+        self.SubTitle.configure(text='''Thiáº¿t Káº¿ Há» Thá»ng XÃ¡c Thá»±c KhuÃ´n Máº·t Sá»­ Dá»¥ng Xá»­ LÃ½ áº¢nh VÃ  CCCD Gáº¯n Chip''')
 
         self.WebcamFrame = tk.Frame(self.top)
         self.WebcamFrame.place(relx=0.01, rely=0.217, relheight=0.478, relwidth=0.458)
@@ -97,8 +113,11 @@ class Toplevel1:
         self.Video_Webcam.configure(highlightbackground="#d9d9d9")
         self.Video_Webcam.configure(highlightcolor="#000000")
         # self.Video_Webcam.configure(text="")
-        self.cap = cv2.VideoCapture(1)
-        self.cap2 = cv2.VideoCapture(0)
+        self.cap2 = cv2.VideoCapture(1)
+        self.cap = cv2.VideoCapture(0)
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1024)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 748)
+        #self.cap2 = cv2.VideoCapture()
         self.update_webcam()
 
         self.Logo = tk.Label(self.top)
@@ -248,8 +267,7 @@ class Toplevel1:
         self.DocumentNumLabel.configure(highlightbackground="#d9d9d9")
         self.DocumentNumLabel.configure(highlightcolor="#000000")
         self.DocumentNumLabel.configure(text='''Document Number:''')
-        self.DocumentNumLabel.configure(textvariable=self.documentNum)
-        self.documentNum.set('''Document Number:''')
+        #self.documentNum.set('''Document Number:''')
 
         self.DocVarLabel = tk.Label(self.InforFrame)
         self.DocVarLabel.place(relx=0.38, rely=0.547, height=21, width=154)
@@ -328,10 +346,23 @@ class Toplevel1:
 
     def update_webcam(self):
         global copy_image
+        
+        #self.frame2 = self.picam2.capture_array()
         ret,frame = self.cap.read()
         ret, frame2 = self.cap2.read()
         frame = cv2.resize(frame,(500,300))
         frame2 = cv2.resize(frame2,(500,300))
+        small_frame = cv2.resize(frame2, (0, 0), fx=0.25, fy=0.25)
+        rgb_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
+
+#     # Detect faces
+        face_locations = face_recognition.face_locations(rgb_frame)
+
+#     # Check number of faces
+        if len(face_locations) == 0 or len(face_locations) > 1:
+                cv2.putText(frame2,'Cant Find Any Face',(20,30),cv2.FONT_HERSHEY_SIMPLEX,1,(255,0,0),2,cv2.LINE_AA)
+        else:
+                cv2.putText(frame2,'Availabel Face',(20,30),cv2.FONT_HERSHEY_SIMPLEX,1,(255,0,0),2,cv2.LINE_AA)
         if ret:
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             blurred = cv2.GaussianBlur(gray, (5, 5), 0)
@@ -346,8 +377,9 @@ class Toplevel1:
             cv2.drawContours(frame,[box],-1,(0,0,255),2)
             cv2.rectangle(frame, (x+5, y+5), (x + w-5, y + h-5), (255, 0, 0), 2)
             copy_image = frame[y+5:y+h-5, x+5:x+w-5]
-            frame = cv2.cvtColor(frame,cv2.COLOR_BGR2RGB)
-            self.frame_image = ImageTk.PhotoImage(image=Image.fromarray(frame))
+
+            frame2 = cv2.cvtColor(frame2,cv2.COLOR_BGR2RGB)
+            self.frame_image = ImageTk.PhotoImage(image=Image.fromarray(frame2))
             self.Video_Webcam.configure(image= self.frame_image)
             self.WebcamFrame.after(1,self.update_webcam)
     def scan_frame(self):
@@ -359,36 +391,39 @@ class Toplevel1:
         global copy_image
         self.clear_info()
         ret, frame2 = self.cap2.read()
-        if ret:
-            frame2 = cv2.cvtColor(frame2,cv2.COLOR_BGR2RGB)
-            cv2.imwrite("facial.jpg", frame2)
-            print("Frame đã được lưu thành 'facial.jpg'")
+        #if ret:
+        frame2 = cv2.cvtColor(frame2,cv2.COLOR_BGR2RGB)
+        cv2.imwrite("facial.jpg", frame2)
+        print("Frame ÄÃ£ ÄÆ°á»£c lÆ°u thÃ nh 'facial.jpg'")
+        img = cv2.cvtColor(copy_image,cv2.COLOR_BGR2RGB)
+
+            # Hiển thị ảnh
+        plt.imshow(img, cmap='gray')  # Thang màu xám
+        plt.axis('on')
+        plt.show()
         try:
             Document_number, Date_of_birth, Date_of_expire = read(copy_image)
-        except IndexError:
+
+        except Exception:
             GUIv2_support.popup.destroy()
-            GUIv2_support.popupError("Đã Xảy Ra Lỗi")
+            GUIv2_support.popupError("ÄÃ£ Xáº£y Ra Lá»i")
             time.sleep(2)
             GUIv2_support.popup.destroy()
+
         self.date_of_birth.set(Date_of_birth)
         self.date_of_expire.set(Date_of_expire)
         try:
             fullname,docID = readData.getImage(Document_number,Date_of_birth,Date_of_expire)
         except Exception:
             GUIv2_support.popup.destroy()
-            GUIv2_support.popupError("Đã Xảy Ra Lỗi")
+            GUIv2_support.popupError("ÄÃ£ Xáº£y Ra Lá»i")
             time.sleep(2)
             GUIv2_support.popup.destroy()
-        self.documentNum.set(docID)
+        self.document_number.set(docID)
         self.full_name.set(fullname)
-        image_from_card = cv2.imread('output.jpg')
-        image_from_card = cv2.cvtColor(image_from_card, cv2.COLOR_BGR2RGB)
-        image_from_card = ImageTk.PhotoImage(image=Image.fromarray(image_from_card))
-        self.FacialLabel.configure(image=image_from_card)
-        # self.FacialLabel.image = image_from_card
-        os.remove("output.jpg")
-        os.remove("facial.jpg")
-        GUIv2_support.popup.destroy()
+        image_from_card = cv2.resize(cv2.imread("output.jpg"),(150,200))
+        self.FacialLabel.image = image_from_card
+        GUIv2_support.face_compare(self)
     def clear_info(self):
         self.FacialLabel.configure(image="")
         self.document_number.set("")
@@ -397,7 +432,7 @@ class Toplevel1:
         self.date_of_birth.set("")
         self.date_of_expire.set("")
     def exit_program(self):
-        """Thoát chương trình."""
+        """ThoÃ¡t chÆ°Æ¡ng trÃ¬nh."""
         self.cap.release()
         cv2.destroyAllWindows()
         self.top.quit()
@@ -406,4 +441,6 @@ def start_up():
     GUIv2_support.main()
 
 if __name__ == '__main__':
-    GUIv2_support.main()
+        
+
+        GUIv2_support.main()
