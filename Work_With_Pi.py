@@ -15,9 +15,14 @@ from picamera2 import Picamera2
 ocr_model = PaddleOCR(lang='en')
 video_width, video_height = 500, 300
 
-
+def showimage(image):
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    plt.imshow(image)
+    plt.axis('on')
+    plt.title('Image')  
+    plt.show()
 def update_video_feed():
-    global copy_image
+    global copy_image,frame
     # self.frame2 = self.picam2.capture_array()
     ret, frame = cap.read()
     frame2 = frame2 = picam2.capture_array()
@@ -37,18 +42,21 @@ def update_video_feed():
         box = cv2.boxPoints(rect).astype('int')
         x, y, w, h = cv2.boundingRect(biggest)
         cv2.drawContours(frame, [box], -1, (0, 0, 255), 2)
-        cv2.rectangle(frame, (x+5, y+5), (x + w-5, y + h-5), (255, 0, 0), 2)
-        copy_image = frame[y+5:y+h-5, x+5:x+w-5]
+        copy_image = frame[y:y+h, x:x+w]
+        #copy_image = cv2.rotate(copy_image, cv2.ROTATE_180)
+        #isBackSide_image = copy_image[65:65+50, 40:40+65]
         frame2 = cv2.cvtColor(frame2, cv2.COLOR_BGR2RGB)
         frame_image = ImageTk.PhotoImage(image=Image.fromarray(frame2))
         Video_Webcam.imgtk = frame_image
         Video_Webcam.configure(image=frame_image)
+        #threading.Thread(target= showimage,args=(isBackSide_image,),daemon=True).start()
     WebcamFrame.after(1, update_video_feed)
 
 def popupError(message):
         global popup
         popup = Toplevel(root)
         popup.title("Notification")
+        popup.attributes("-topmost", True)
         popup.geometry("300x200")
         root_x = root.winfo_x()
         root_y = root.winfo_y()
@@ -59,25 +67,11 @@ def popupError(message):
         y = root_y+(root_h//2)-(popup_h//2)
         popup.geometry(f"{popup_w}x{popup_h}+{x}+{y}")
         Label(popup,text=message,font=("Arial",14)).pack(pady=50)
+        Button(popup, text="Close", command=popup.destroy, font=("Arial", 12)).pack(pady=20)
 
 def scan_frame():
     clear_info()
-    frame2 = picam2.capture_array()
-    frame2 = cv2.cvtColor(frame2, cv2.COLOR_BGR2RGB)
-    cv2.imwrite("facial.jpg", frame2)
-    base_image=cv2.imread("facial.jpg")
-    base_image= cv2.cvtColor(base_image,cv2.COLOR_BGR2RGB)
-    face_locations = face_recognition.face_locations(base_image)
-    if len(face_locations) == 0 or len(face_locations) > 1:
-        popup.destroy()
-        popupError("Cant Detect Face")
-        return
-    else:
-        print("Frame ÄÃ£ ÄÆ°á»£c lÆ°u thÃ nh 'facial.jpg'")
-        popupError("Processing")
-        thread = threading.Thread(target=process_frame)
-        thread.daemon = True
-        thread.start()
+    threading.Thread(target= process_frame,daemon=True).start()
         
 def compare_face():
     image_from_card = cv2.imread('output.jpg')
@@ -88,35 +82,59 @@ def compare_face():
     img_encoding = face_recognition.face_encodings(image_from_card)[0]
     rs = face_recognition.compare_faces([img_encoding], img_encoding2)
     print(rs)
-    popup.destroy()
+    if popup and popup.winfo_exists():
+            popup.destroy()
     if rs[0] == True:
         popupError("Success")
     else:
         popupError("Fail")
     os.remove("output.jpg")
     os.remove("facial.jpg")
+    return
 def process_frame():
     global copy_image, document_number, full_name, date_of_birth, date_of_expire
-    # Hiá»n thá» áº£nh
-#    plt.imshow(copy_image)
- #   plt.axis('on')
-  #  plt.show()
+    clear_info()
+    popupError("Processing")
+    root.update()
+    image_rgb = cv2.cvtColor(copy_image, cv2.COLOR_BGR2RGB)
+    #plt.imshow(image_rgb)
+    #plt.axis('on')
+    #plt.show()
+    frame2 = picam2.capture_array()
+    frame2 = cv2.cvtColor(frame2, cv2.COLOR_BGR2RGB)
+    cv2.imwrite("facial.jpg", frame2)
+    base_image=cv2.imread("facial.jpg")
+    base_image= cv2.cvtColor(base_image,cv2.COLOR_BGR2RGB)
+    face_locations = face_recognition.face_locations(base_image)
+    if len(face_locations) == 0 or len(face_locations) > 1:
+        if popup and popup.winfo_exists():
+            popup.destroy()
+        popupError("Cant Detect Face")
+        root.update()
+        return
+    else:
+            print("facial.jpg")
     try:
         Document_number, Date_of_birth, Date_of_expire = read(copy_image)
     except Exception:
-        popup.destroy()
-        popupError("Error When Read OCR")
-        time.sleep(2)
-        popup.destroy()
-    date_of_birth.set(Date_of_birth)
-    date_of_expire.set(Date_of_expire)
+        if popup and popup.winfo_exists():
+            popup.destroy()
+        popupError("Cant Detect Card")
+        root.update()
+        
+        isBackSide_image = copy_image[65:65+50, 40:40+65]
+        copy_image_s = cv2.rotate(copy_image, cv2.ROTATE_180)
+        return
     try:
         fullname, docID,nguyen_quan = readData.getImage(Document_number, Date_of_birth, Date_of_expire)
     except Exception:
-        popup.destroy()
+        if popup and popup.winfo_exists():
+            popup.destroy()
         popupError("Authentication Error")
-        time.sleep(2)
-        popup.destroy()
+        root.update()
+        return
+    date_of_birth.set(Date_of_birth)
+    date_of_expire.set(Date_of_expire)
     nation.set(nguyen_quan)
     document_number.set(docID)
     full_name.set(fullname)
@@ -126,8 +144,6 @@ def process_frame():
     image_from_card_cp = ImageTk.PhotoImage(image=Image.fromarray(image_from_card_cp))
     FacialLabel.imgtk = image_from_card_cp
     FacialLabel.configure(image=image_from_card_cp)
-
-
     compare_face()
 
 def clear_info():
@@ -140,29 +156,29 @@ def clear_info():
 
 def exit_program():
     cap.release()
+    picam2.stop()
     # cap2.release()
     cv2.destroyAllWindows()
     root.quit()
+    
 
 def main():
     global cap, picam2, FacialLabel, nation, root, document_number, full_name, date_of_birth, date_of_expire, Video_Webcam, WebcamFrame
-    # Khá»i táº¡o tkinter
 
     root = Tk()
     root.geometry("1024x600")
-    root.rowconfigure(0, weight=5)  # DÃ²ng chá»©a hÃ¬nh áº£nh chiáº¿m 80% chiá»u cao
-    root.rowconfigure(1, weight=0)  # DÃ²ng chá»©a thÃ´ng tin chiáº¿m 20% chiá»u cao
-    root.rowconfigure(2, weight=0)  # DÃ²ng chá»©a nÃºt khÃ´ng chiáº¿m thÃªm khÃ´ng gian
+    #root.attributes('-fullscreen', True)
+    root.rowconfigure(0, weight=5)
+    root.rowconfigure(1, weight=0) 
+    root.rowconfigure(2, weight=0)  
     root.columnconfigure(0, weight=0)
     root.title("Document Info Viewer")
-    # Biáº¿n thÃ´ng tin
-    root.geometry("1024x748")
-    #  root.attributes("-fullscreen", True)
+    
     #  root.minsize(120, 1)
-    #  root.maxsize(1540, 845)
+    #  root.maxsize(1540, 845)-
     #  root.resizable(1,  1)
-    root.title("Toplevel 0")
-    root.configure(background="#d9d9d9")
+    root.title("FaceID Authentication System")
+    root.configure(background="#03fcb8")
     root.configure(highlightbackground="#d9d9d9")
     root.configure(highlightcolor="#000000")
     document_number = StringVar()
@@ -172,32 +188,32 @@ def main():
     date_of_expire = StringVar()
 
     Title = Label(root)
-    Title.place(relx=0.381, rely=0.033, height=31, width=274)
+    Title.place(relx=0.42, rely=0.033, height=41, width=173)
     Title.configure(activebackground="#d9d9d9")
     Title.configure(activeforeground="black")
     Title.configure(anchor='w')
-    Title.configure(background="#d9d9d9")
+    Title.configure(background="#03fcb8")
     Title.configure(compound='left')
     Title.configure(disabledforeground="#a3a3a3")
-    Title.configure(font="-family {Times New Roman} -size 23 -weight bold")
+    Title.configure(font="-family {Times New Roman} -size 22 -weight bold")
     Title.configure(foreground="black")
     Title.configure(highlightbackground="#d9d9d9")
     Title.configure(highlightcolor="#000000")
     Title.configure(text='Final Project')
 
     SubTitle = Label(root)
-    SubTitle.place(relx=0.225, rely=0.1, height=21, width=694)
+    SubTitle.place(relx=0.313, rely=0.1, height=41, width=411)
     SubTitle.configure(activebackground="#d9d9d9")
     SubTitle.configure(activeforeground="black")
     SubTitle.configure(anchor='w')
-    SubTitle.configure(background="#d9d9d9")
+    SubTitle.configure(background="#03fcb8")
     SubTitle.configure(compound='left')
     SubTitle.configure(disabledforeground="#a3a3a3")
-    SubTitle.configure(font="-family {Times New Roman} -size 14 -weight bold")
+    SubTitle.configure(font="-family {Times New Roman} -size 22 -weight bold")
     SubTitle.configure(foreground="black")
     SubTitle.configure(highlightbackground="#d9d9d9")
     SubTitle.configure(highlightcolor="#000000")
-    SubTitle.configure( text='Design of an ID face authentication system using image processing and chip-embedded citizen identification cards')
+    SubTitle.configure( text='FaceID Authentication System ')
 
     WebcamFrame = Frame(root)
     WebcamFrame.place(relx=0.01, rely=0.217,height=287, width=469)
@@ -242,7 +258,7 @@ def main():
     Logo.configure(activebackground="#d9d9d9")
     Logo.configure(activeforeground="black")
     Logo.configure(anchor='w')
-    Logo.configure(background="#d9d9d9")
+    Logo.configure(background="#03fcb8")
     Logo.configure(compound='left')
     Logo.configure(disabledforeground="#a3a3a3")
     Logo.configure(foreground="#000000")
@@ -254,8 +270,36 @@ def main():
     _img0 = PhotoImage(file=photo_location)
     Logo.configure(image=_img0)
 
+    Label1 =Label(root)
+    Label1.place(relx=0.01, rely=0.867, height=21, width=150)
+    Label1.configure(activebackground="#d9d9d9")
+    Label1.configure(activeforeground="black")
+    Label1.configure(anchor='w')
+    Label1.configure(background="#03fcb8")
+    Label1.configure(compound='left')
+    Label1.configure(disabledforeground="#a3a3a3")
+    Label1.configure(font="-family {Times New Roman} -size 13 -weight bold")
+    Label1.configure(foreground="#000000")
+    Label1.configure(highlightbackground="#d9d9d9")
+    Label1.configure(highlightcolor="#000000")
+    Label1.configure(text='''SVTH: HÃ  Quá»c An''')
+
+    Label2 = Label(root)
+    Label2.place(relx=0.01, rely=0.933, height=21, width=180)
+    Label2.configure(activebackground="#d9d9d9")
+    Label2.configure(activeforeground="black")
+    Label2.configure(anchor='w')
+    Label2.configure(background="#03fcb8")
+    Label2.configure(compound='left')
+    Label2.configure(disabledforeground="#a3a3a3")
+    Label2.configure(font="-family {Times New Roman} -size 13 -weight bold")
+    Label2.configure(foreground="#000000")
+    Label2.configure(highlightbackground="#d9d9d9")
+    Label2.configure(highlightcolor="#000000")
+    Label2.configure(text='GVHD: TS. LÃª Anh VÅ©')
+
     CheckButton = Button(root)
-    CheckButton.place(relx=0.029, rely=0.85, height=46, width=97)
+    CheckButton.place(relx=0.01, rely=0.75, height=46, width=97)
     CheckButton.configure(activebackground="#d9d9d9")
     CheckButton.configure(activeforeground="black")
     CheckButton.configure(background="#6dfd44")
@@ -264,10 +308,10 @@ def main():
     CheckButton.configure(highlightbackground="#d9d9d9")
     CheckButton.configure(highlightcolor="#000000")
     CheckButton.configure(text='Check')
-    CheckButton.configure(command=scan_frame)
+    CheckButton.configure(command=process_frame)
 
     ClearButton = Button(root)
-    ClearButton.place(relx=0.166, rely=0.85, height=46, width=97)
+    ClearButton.place(relx=0.186, rely=0.75, height=46, width=97)
     ClearButton.configure(activebackground="#d9d9d9")
     ClearButton.configure(activeforeground="black")
     ClearButton.configure(background="#fff424")
@@ -279,7 +323,7 @@ def main():
     ClearButton.configure(command=clear_info)
 
     ExitButton = Button(root)
-    ExitButton.place(relx=0.303, rely=0.85, height=46, width=97)
+    ExitButton.place(relx=0.371, rely=0.75, height=46, width=97)
     ExitButton.configure(activebackground="#d9d9d9")
     ExitButton.configure(activeforeground="black")
     ExitButton.configure(background="#ff243a")
@@ -311,10 +355,10 @@ def main():
     FacialLabel.configure(foreground="black")
     FacialLabel.configure(highlightbackground="#d9d9d9")
     FacialLabel.configure(highlightcolor="#000000")
-    facial_image = cv2.resize(cv2.imread("TDTU_resize-removebg-preview.png"), (150, 200))
-    facial_image_RGB = cv2.cvtColor(facial_image, cv2.COLOR_BGR2RGB)
-    facial = ImageTk.PhotoImage(image=Image.fromarray(facial_image_RGB))
-    FacialLabel.configure(image=facial)
+    #facial_image = cv2.resize(cv2.imread("TDTU_resize-removebg-preview.png"), (150, 200))
+    #facial_image_RGB = cv2.cvtColor(facial_image, cv2.COLOR_BGR2RGB)
+    #facial = ImageTk.PhotoImage(image=Image.fromarray(facial_image_RGB))
+    #FacialLabel.configure(image=facial)
 
     FullNameLabel = Label(InforFrame)
     FullNameLabel.place(relx=0.045, rely=0.611, height=21, width=84)
@@ -402,7 +446,7 @@ def main():
     DocVarLabel.configure(textvariable=document_number)
 
     NameVarLabel = Label(InforFrame)
-    NameVarLabel.place(relx=0.246, rely=0.611, height=21, width=164)
+    NameVarLabel.place(relx=0.246, rely=0.611, height=21, width=250)
     NameVarLabel.configure(font="-family {Times New Roman} -size 13")
     NameVarLabel.configure(activebackground="#d9d9d9")
     NameVarLabel.configure(activeforeground="black")
@@ -461,8 +505,9 @@ def main():
     DoEVar.configure(highlightcolor="#000000")
     DoEVar.configure(text='''DoE''')
     DoEVar.configure(textvariable=date_of_expire)
-    
     root.mainloop()
-
+    
 if __name__ == "__main__":
     main()
+    
+    

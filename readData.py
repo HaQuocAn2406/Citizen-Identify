@@ -367,7 +367,6 @@ def read_EF(data,SSC):
     payload += do87
     # do87 = b"\x87" + asn1_len(b"\x01" + CC) + b"\x01" + CC
     M = CmdHeader+do87
-    # inc_ssc = incremented_ssc(SSC)
     N = pad(bytes.fromhex(inc_ssc)+M, 8, style='iso7816')
     print(N.hex())
     CC = mac_calculate(unpad(N, 8, style='iso7816').hex(), K_mac_NEW)
@@ -482,6 +481,7 @@ def getImage(Document_number,Date_of_birth,Date_of_expire):
     image = data_res[im_start:]
     save_image_from_bytes(image, 'output.jpg')
     mrz_from_ic,ssc = read_EF('0101',bytes.fromhex(ssc))
+
     ascii_string = hex_to_ascii(mrz_from_ic[5:].hex())
     print("ASCII String:", ascii_string)
     docID = ascii_string[15:27]
